@@ -17,7 +17,7 @@ public class BasketPanel: NSPanel {
     private let basketVC = BasketViewController()
 
     private init() {
-        let defaultRect = NSRect(x: 200, y: 200, width: 360, height: 420)
+        let defaultRect = NSRect(x: 200, y: 200, width: 400, height: 460)
         super.init(
             contentRect: defaultRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -27,9 +27,19 @@ public class BasketPanel: NSPanel {
 
         self.title = Metadata.appName
         self.isFloatingPanel = true
-        self.level = NSWindow.Level(Int(CGWindowLevelForKey(.floatingWindow)) + 2)
+        // High level: popUpMenuWindow stays above everything including AeroSpace tiled windows
+        self.level = NSWindow.Level(Int(CGWindowLevelForKey(.popUpMenuWindow)))
         // Crucial for AeroSpace compatibility:
-        self.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+        self.collectionBehavior = [
+            .canJoinAllSpaces,
+            .stationary,
+            .ignoresCycle,
+            .fullScreenAuxiliary
+        ]
+        // Never hide on deactivate!
+        self.hidesOnDeactivate = false
+        self.isReleasedWhenClosed = false
+        self.becomesKeyOnlyIfNeeded = true
         self.isMovableByWindowBackground = true
         self.hasShadow = true
         self.backgroundColor = .clear
@@ -48,20 +58,16 @@ public class BasketPanel: NSPanel {
         let activeScreen = NSScreen.screens.first(where: { NSMouseInRect(cocoaPoint, $0.frame, false) }) ?? NSScreen.main ?? NSScreen.screens[0]
         let visibleFrame = activeScreen.visibleFrame
 
-        let width: CGFloat = 360
-        let height: CGFloat = 420
+        let width: CGFloat = 400
+        let height: CGFloat = 460
 
-        var targetX = cocoaPoint.x + 20
-        var targetY = cocoaPoint.y - (height / 2)
-
-        // If overflowing to right, place on left
-        if targetX + width > visibleFrame.maxX {
-            targetX = cocoaPoint.x - width - 20
-        }
+        // Center horizontally around the cursor, and position cursor directly inside the upper drop area
+        var targetX = cocoaPoint.x - (width / 2.0)
+        var targetY = cocoaPoint.y - height + 100.0
 
         // Clamp inside visible frame
-        targetX = max(visibleFrame.minX + 8, min(targetX, visibleFrame.maxX - width - 8))
-        targetY = max(visibleFrame.minY + 8, min(targetY, visibleFrame.maxY - height - 8))
+        targetX = max(visibleFrame.minX + 12, min(targetX, visibleFrame.maxX - width - 12))
+        targetY = max(visibleFrame.minY + 12, min(targetY, visibleFrame.maxY - height - 12))
 
         setFrame(NSRect(x: targetX, y: targetY, width: width, height: height), display: true)
 
@@ -69,16 +75,11 @@ public class BasketPanel: NSPanel {
             alphaValue = 0.0
             orderFrontRegardless()
             NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.16
+                ctx.duration = 0.14
                 animator().alphaValue = 1.0
             }
         } else {
             orderFrontRegardless()
-        }
-
-        // If opened empty, start auto-hide countdown
-        if BasketModel.shared.isEmpty && AppSettings.shared.autoHideEmpty {
-            startAutoHideTimer()
         }
     }
 
@@ -110,11 +111,17 @@ public class BasketPanel: NSPanel {
 
     public func startAutoHideTimer() {
         cancelAutoHideTimer()
+        // If files are held in the basket, NEVER auto-hide!
+        guard BasketModel.shared.isEmpty else { return }
+
+        // Generous delay so the user isn't rushed
         let delay = AppSettings.shared.autoHideDelay
         autoHideTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
-                if BasketModel.shared.isEmpty {
+                // Only hide if still empty and mouse is not currently inside the window
+                let mouseLoc = NSEvent.mouseLocation
+                if BasketModel.shared.isEmpty && !NSMouseInRect(mouseLoc, self.frame, false) {
                     self.hideWithFade()
                 }
             }

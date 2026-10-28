@@ -28,7 +28,7 @@ public final class ShakeDetector: @unchecked Sendable {
     private var reversalTimesY: [TimeInterval] = []
 
     private var lastTriggerTime: TimeInterval = 0
-    private let cooldown: TimeInterval = 1.2
+    private let cooldown: TimeInterval = 0.6
     public private(set) var isDragging: Bool = false
 
     public init() {}
@@ -89,7 +89,7 @@ public final class ShakeDetector: @unchecked Sendable {
         let timeWindow = sensitivity.timeWindow
 
         // Horizontal axis analysis
-        if abs(dx) > 1.5 {
+        if abs(dx) > 1.0 {
             let sign = dx > 0 ? 1 : -1
             if dirX != 0 && sign != dirX {
                 if strokeDistX >= minStroke {
@@ -102,7 +102,7 @@ public final class ShakeDetector: @unchecked Sendable {
         }
 
         // Vertical axis analysis
-        if abs(dy) > 1.5 {
+        if abs(dy) > 1.0 {
             let sign = dy > 0 ? 1 : -1
             if dirY != 0 && sign != dirY {
                 if strokeDistY >= minStroke {

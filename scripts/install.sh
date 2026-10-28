@@ -52,3 +52,4 @@ echo "To launch DropBasket, run:"
 echo "  open -a DropBasket"
 echo "  or simply: dropbasket"
 echo ""
+

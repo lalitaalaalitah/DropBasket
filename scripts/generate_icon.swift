@@ -99,3 +99,4 @@ task.waitUntilExit()
 
 try? FileManager.default.removeItem(atPath: iconsetPath)
 print("Generated AppIcon.icns successfully at \(icnsPath)")
+

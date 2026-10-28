@@ -35,3 +35,4 @@ public struct Metadata {
         return "\(appName) v\(appVersion) by \(author) (\(github))"
     }
 }
+

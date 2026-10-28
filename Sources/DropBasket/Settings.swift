@@ -17,25 +17,25 @@ public enum ShakeSensitivity: String, CaseIterable, Sendable {
 
     var minStrokeDistance: CGFloat {
         switch self {
-        case .low: return 35.0
-        case .medium: return 22.0
-        case .high: return 14.0
+        case .low: return 14.0
+        case .medium: return 8.0   // Fast & effortless
+        case .high: return 5.0    // Ultra sensitive
         }
     }
 
     var minReversals: Int {
         switch self {
-        case .low: return 4
-        case .medium: return 3
-        case .high: return 3
+        case .low: return 3
+        case .medium: return 2   // Just 2 reversals (quick left-right flick!)
+        case .high: return 2
         }
     }
 
     var timeWindow: TimeInterval {
         switch self {
-        case .low: return 0.65
-        case .medium: return 0.60
-        case .high: return 0.55
+        case .low: return 0.70
+        case .medium: return 0.75
+        case .high: return 0.80
         }
     }
 }
@@ -106,7 +106,7 @@ public final class AppSettings: @unchecked Sendable {
     public var autoHideDelay: TimeInterval {
         get {
             let val = defaults.double(forKey: Keys.autoHideDelay)
-            return val > 0 ? val : 2.5
+            return val > 0 ? val : 5.0
         }
         set {
             defaults.set(newValue, forKey: Keys.autoHideDelay)

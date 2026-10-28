@@ -8,37 +8,77 @@
 //
 
 import Cocoa
+import UniformTypeIdentifiers
 
 public struct BasketItem: Identifiable, Equatable, @unchecked Sendable {
     public let id: UUID
     public let url: URL
     public let name: String
+    public let extensionString: String
+    public let kind: String
     public let icon: NSImage
     public let sizeBytes: Int64
     public let sizeString: String
+    public let directoryName: String
+    public let modificationDateString: String
     public let isDirectory: Bool
+    public var isMoveOperation: Bool
     public let dateAdded: Date
 
-    public init(url: URL) {
+    public init(url: URL, isMove: Bool = false) {
         self.id = UUID()
         self.url = url
         self.name = url.lastPathComponent
         self.dateAdded = Date()
+        self.isMoveOperation = isMove
+
+        let ext = url.pathExtension.uppercased()
+        self.extensionString = ext.isEmpty ? (url.hasDirectoryPath ? "DIR" : "FILE") : ext
 
         let ws = NSWorkspace.shared
         self.icon = ws.icon(forFile: url.path)
-        self.icon.size = NSSize(width: 32, height: 32)
+        self.icon.size = NSSize(width: 40, height: 40)
 
         var isDir: ObjCBool = false
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
         self.isDirectory = isDir.boolValue
 
+        self.directoryName = url.deletingLastPathComponent().lastPathComponent
+
+        // Fetch rich resource values
         var size: Int64 = 0
-        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
+        var typeDesc = isDir.boolValue ? "Folder" : "File"
+        var modDateStr = "Unknown"
+
+        if let rv = try? url.resourceValues(forKeys: [.localizedTypeDescriptionKey, .fileSizeKey, .contentModificationDateKey, .totalFileSizeKey]) {
+            if let desc = rv.localizedTypeDescription, !desc.isEmpty {
+                typeDesc = desc
+            }
+            if let fileSize = rv.totalFileSize ?? rv.fileSize {
+                size = Int64(fileSize)
+            }
+            if let modDate = rv.contentModificationDate {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .medium
+                formatter.timeStyle = .short
+                formatter.doesRelativeDateFormatting = true
+                modDateStr = formatter.string(from: modDate)
+            }
+        } else if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
             size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
+            if let modDate = attrs[.modificationDate] as? Date {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .medium
+                formatter.timeStyle = .short
+                formatter.doesRelativeDateFormatting = true
+                modDateStr = formatter.string(from: modDate)
+            }
         }
+
         self.sizeBytes = size
         self.sizeString = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        self.kind = typeDesc
+        self.modificationDateString = modDateStr
     }
 
     public static func == (lhs: BasketItem, rhs: BasketItem) -> Bool {
@@ -84,13 +124,17 @@ public class BasketModel {
     private init() {}
 
     @discardableResult
-    public func add(urls: [URL]) -> Int {
+    public func add(urls: [URL], isMove: Bool = false) -> Int {
         var addedCount = 0
         for url in urls {
-            // Standardize url
             let standardURL = url.standardizedFileURL
-            if !items.contains(where: { $0.url.path == standardURL.path }) {
-                let item = BasketItem(url: standardURL)
+            if let idx = items.firstIndex(where: { $0.url.path == standardURL.path }) {
+                // Update move flag if specified
+                if isMove {
+                    items[idx].isMoveOperation = true
+                }
+            } else {
+                let item = BasketItem(url: standardURL, isMove: isMove)
                 items.append(item)
                 addedCount += 1
             }
@@ -113,6 +157,20 @@ public class BasketModel {
     public func remove(at index: Int) {
         guard index >= 0 && index < items.count else { return }
         items.remove(at: index)
+        delegate?.basketDidUpdate(self)
+    }
+
+    public func toggleMove(item: BasketItem) {
+        if let idx = items.firstIndex(where: { $0.id == item.id }) {
+            items[idx].isMoveOperation.toggle()
+            delegate?.basketDidUpdate(self)
+        }
+    }
+
+    public func setAllMove(isMove: Bool) {
+        for i in 0..<items.count {
+            items[i].isMoveOperation = isMove
+        }
         delegate?.basketDidUpdate(self)
     }
 

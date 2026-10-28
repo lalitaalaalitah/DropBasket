@@ -10,6 +10,7 @@
 import Testing
 import Foundation
 import CoreGraphics
+import Cocoa
 @testable import DropBasket
 
 final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
@@ -35,6 +36,14 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(Metadata.appVersion == "1.0.0")
         #expect(Metadata.bundleIdentifier == "com.lalitaalaalitah.DropBasket")
     }
+
+    @Test func testCatppuccinMochaPalette() {
+        #expect(Catppuccin.base.numberOfComponents >= 3)
+        #expect(Catppuccin.text.numberOfComponents >= 3)
+        #expect(Catppuccin.mauve.numberOfComponents >= 3)
+        #expect(Catppuccin.peach.numberOfComponents >= 3)
+        #expect(Catppuccin.teal.numberOfComponents >= 3)
+    }
 }
 
 @Suite struct ShakeDetectorTests {
@@ -53,7 +62,7 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(delegate.endedDrags.count == 1)
     }
 
-    @Test func testShakeBackAndForthTriggers() {
+    @Test func testQuickShakeTriggersEffortlessly() {
         let detector = ShakeDetector()
         let delegate = MockShakeDelegate()
         detector.delegate = delegate
@@ -62,11 +71,11 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 
         detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
 
-        // Shake: 100 -> 160 -> 80 -> 170 -> 70
-        let targets: [CGFloat] = [160, 80, 170, 70, 160]
+        // Quick back-and-forth flick: 100 -> 120 -> 95 -> 120
+        let targets: [CGFloat] = [120, 95, 120]
         var currentX: CGFloat = 100
         for target in targets {
-            let step: CGFloat = target > currentX ? 6 : -6
+            let step: CGFloat = target > currentX ? 4 : -4
             while (step > 0 && currentX < target) || (step < 0 && currentX > target) {
                 currentX += step
                 detector.handleMouseDragged(at: CGPoint(x: currentX, y: 100))
@@ -85,34 +94,37 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 }
 
 @Suite struct BasketModelTests {
-    @Test @MainActor func testAddAndDeduplicateItems() {
+    @Test @MainActor func testAddWithMetadataAndMoveMode() {
         let model = BasketModel.shared
         model.clear()
         #expect(model.isEmpty)
 
         let tempDir = FileManager.default.temporaryDirectory
-        let fileA = tempDir.appendingPathComponent("testA.txt")
-        let fileB = tempDir.appendingPathComponent("testB.txt")
+        let fileA = tempDir.appendingPathComponent("document.txt")
+        let fileB = tempDir.appendingPathComponent("image.png")
 
-        try? "File A content".write(to: fileA, atomically: true, encoding: .utf8)
-        try? "File B content".write(to: fileB, atomically: true, encoding: .utf8)
+        try? "Document Text".write(to: fileA, atomically: true, encoding: .utf8)
+        try? "PNG Fake Bytes".write(to: fileB, atomically: true, encoding: .utf8)
 
-        let added = model.add(urls: [fileA, fileB])
-        #expect(added == 2)
-        #expect(model.count == 2)
+        // Drop fileA with default Copy, fileB with Cmd+Move
+        let added = model.add(urls: [fileA], isMove: false)
+        #expect(added == 1)
+        #expect(model.items.first?.isMoveOperation == false)
+        #expect(model.items.first?.extensionString == "TXT")
 
-        // Duplicate add
-        let duplicateAdded = model.add(urls: [fileA])
-        #expect(duplicateAdded == 0)
-        #expect(model.count == 2)
+        let addedB = model.add(urls: [fileB], isMove: true)
+        #expect(addedB == 1)
+        #expect(model.items.last?.isMoveOperation == true)
+        #expect(model.items.last?.extensionString == "PNG")
+        #expect(!model.items.last!.modificationDateString.isEmpty)
 
-        // Remove item
+        // Toggle Move
         if let first = model.items.first {
-            model.remove(item: first)
-            #expect(model.count == 1)
+            model.toggleMove(item: first)
+            #expect(model.items.first?.isMoveOperation == true)
         }
 
-        // Clear
+        // Clean
         model.clear()
         #expect(model.isEmpty)
 
