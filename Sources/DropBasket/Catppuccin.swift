@@ -53,3 +53,4 @@ extension NSColor {
         self.init(srgbRed: r, green: g, blue: b, alpha: alpha)
     }
 }
+

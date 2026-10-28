@@ -45,6 +45,14 @@ public class BasketPanel: NSPanel {
         self.backgroundColor = .clear
         self.isOpaque = false
         self.contentViewController = basketVC
+
+        // Register window for drag & drop
+        self.registerForDraggedTypes([
+            .fileURL,
+            .URL,
+            .string,
+            NSPasteboard.PasteboardType("NSFilenamesPboardType")
+        ])
     }
 
     public func showNear(cursorPoint: CGPoint) {

@@ -25,16 +25,14 @@ public class DraggableAllButton: NSButton, NSDraggingSource {
         self.bezelStyle = .inline
         self.isBordered = false
         self.wantsLayer = true
-        self.layer?.cornerRadius = 8
+        self.layer?.cornerRadius = 6
         self.layer?.backgroundColor = Catppuccin.blue.cgColor
-        self.font = NSFont.systemFont(ofSize: 12, weight: .bold)
 
-        // Text color
         let attrTitle = NSAttributedString(
             string: title,
             attributes: [
                 .foregroundColor: Catppuccin.crust,
-                .font: NSFont.systemFont(ofSize: 12, weight: .bold)
+                .font: NSFont.systemFont(ofSize: 11, weight: .bold)
             ]
         )
         self.attributedTitle = attrTitle
@@ -69,7 +67,7 @@ public class DraggableAllButton: NSButton, NSDraggingSource {
         var draggingItems: [NSDraggingItem] = []
         for (index, item) in items.enumerated() {
             let dragItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
-            let frame = NSRect(x: CGFloat(index * 6), y: 0, width: 36, height: 36)
+            let frame = NSRect(x: CGFloat(index * 6), y: 0, width: 38, height: 38)
             dragItem.setDraggingFrame(frame, contents: item.icon)
             draggingItems.append(dragItem)
         }
@@ -101,6 +99,10 @@ public class BasketItemRowView: NSView, NSDraggingSource {
     public var onToggleMove: (() -> Void)?
     public var onDragSessionEnded: ((NSDragOperation) -> Void)?
 
+    public override var intrinsicContentSize: NSSize {
+        return NSSize(width: NSView.noIntrinsicMetric, height: 74)
+    }
+
     private let iconView = NSImageView()
     private let nameLabel = NSTextField(labelWithString: "")
     private let extBadge = NSTextField(labelWithString: "")
@@ -116,7 +118,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
 
     public init(item: BasketItem) {
         self.item = item
-        super.init(frame: NSRect(x: 0, y: 0, width: 380, height: 68))
+        super.init(frame: NSRect(x: 0, y: 0, width: 376, height: 74))
         wantsLayer = true
         layer?.cornerRadius = 10
         layer?.backgroundColor = Catppuccin.surface0.cgColor
@@ -196,11 +198,11 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 38),
-            iconView.heightAnchor.constraint(equalToConstant: 38),
+            iconView.widthAnchor.constraint(equalToConstant: 40),
+            iconView.heightAnchor.constraint(equalToConstant: 40),
 
             nameLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
-            nameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            nameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
 
             extBadge.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 6),
             extBadge.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
@@ -216,14 +218,16 @@ public class BasketItemRowView: NSView, NSDraggingSource {
 
             modeBadgeButton.trailingAnchor.constraint(equalTo: btnStack.leadingAnchor, constant: -8),
             modeBadgeButton.centerYAnchor.constraint(equalTo: dirAndDateLabel.centerYAnchor),
-            modeBadgeButton.heightAnchor.constraint(equalToConstant: 16),
+            modeBadgeButton.heightAnchor.constraint(equalToConstant: 18),
 
             btnStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             btnStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            btnStack.widthAnchor.constraint(equalToConstant: 80),
+            btnStack.heightAnchor.constraint(equalToConstant: 26),
         ])
     }
 
-    private func updateModeBadge() {
+    public func updateModeBadge() {
         let isMove = item.isMoveOperation
         let text = isMove ? " ⌘ MOVE " : " COPY "
         let color = isMove ? Catppuccin.peach : Catppuccin.teal
@@ -310,7 +314,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         let dist = hypot(current.x - start.x, current.y - start.y)
         if dist > 4.0 {
             let dragItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
-            let dragRect = NSRect(x: 0, y: 0, width: 38, height: 38)
+            let dragRect = NSRect(x: 0, y: 0, width: 40, height: 40)
             dragItem.setDraggingFrame(dragRect, contents: item.icon)
             beginDraggingSession(with: [dragItem], event: event, source: self)
         }

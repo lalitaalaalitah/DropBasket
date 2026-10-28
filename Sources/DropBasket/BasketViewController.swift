@@ -55,6 +55,10 @@ public class BasketRootDropView: NSView {
         onDraggingExited?(sender)
     }
 
+    public override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        return true
+    }
+
     public override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         setHighlight(false, isCmd: false)
         let pb = sender.draggingPasteboard
@@ -70,7 +74,7 @@ public class BasketRootDropView: NSView {
     private func extractURLs(from pasteboard: NSPasteboard) -> [URL] {
         var results: [URL] = []
 
-        // Method 1: readObjects
+        // Method 1: readObjects with NSURL
         if let nsUrls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [NSURL] {
             for u in nsUrls {
                 if let fileUrl = u.filePathURL ?? (u as URL).standardizedFileURL as URL? {
@@ -120,7 +124,7 @@ public class BasketRootDropView: NSView {
         super.draw(dirtyRect)
         if isHighlighted {
             let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 16, yRadius: 16)
-            path.lineWidth = 3.0
+            path.lineWidth = 3.5
             let strokeColor = isCommandHeld ? Catppuccin.peach : Catppuccin.mauve
             strokeColor.setStroke()
             path.stroke()
@@ -144,13 +148,13 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
     private let copyButton = NSButton()
     private let closeButton = NSButton()
 
-    // Empty state views
+    // Empty state views (Dedicated Drop Zone)
     private let emptyView = NSView()
     private let emptyIconLabel = NSTextField(labelWithString: "🧺")
-    private let emptyTitleLabel = NSTextField(labelWithString: "Drop Files to Basket")
-    private let emptySubtitleLabel = NSTextField(labelWithString: "Default: Copy • Hold ⌘ to Move\nShake cursor while dragging to summon anywhere")
+    private let emptyTitleLabel = NSTextField(labelWithString: "Release Mouse to Drop Files")
+    private let emptySubtitleLabel = NSTextField(labelWithString: "Default: Copy • Hold ⌘ to Move\nShake cursor anywhere while dragging to summon")
     private let emptyModeHint = NSTextField(labelWithString: "")
-    private let collectFinderButton = NSButton()
+    private let importFinderButton = NSButton()
 
     // Populated state views
     private let populatedView = NSView()
@@ -182,7 +186,6 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
     }
 
     private func setupVisualEffect() {
-        // Visual effect backing with Catppuccin Mocha base color
         visualEffectView.frame = containerView.bounds
         visualEffectView.autoresizingMask = [.width, .height]
         visualEffectView.material = .hudWindow
@@ -190,7 +193,6 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         visualEffectView.state = .active
         containerView.addSubview(visualEffectView)
 
-        // Catppuccin translucent Mocha overlay
         catppuccinBackground.frame = containerView.bounds
         catppuccinBackground.autoresizingMask = [.width, .height]
         catppuccinBackground.wantsLayer = true
@@ -206,14 +208,12 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         headerView.translatesAutoresizingMaskIntoConstraints = false
         catppuccinBackground.addSubview(headerView)
 
-        // Title
         titleLabel.stringValue = "🧺 DropBasket"
         titleLabel.font = NSFont.systemFont(ofSize: 14, weight: .heavy)
         titleLabel.textColor = Catppuccin.mauve
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(titleLabel)
 
-        // AeroSpace Workspace Pill
         spacePill.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .bold)
         spacePill.textColor = Catppuccin.sky
         spacePill.wantsLayer = true
@@ -223,13 +223,11 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         spacePill.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(spacePill)
 
-        // Count badge
         countBadge.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         countBadge.textColor = Catppuccin.yellow
         countBadge.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(countBadge)
 
-        // Drag All button
         dragAllButton.toolTip = "Click and drag to drop ALL files at once into any AeroSpace workspace"
         dragAllButton.itemsProvider = { [weak self] in
             return self?.model.items ?? []
@@ -242,11 +240,9 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         dragAllButton.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(dragAllButton)
 
-        // Copy button
         setupTopButton(copyButton, title: "📋", tooltip: "Copy all files to clipboard (Cmd+V)", color: Catppuccin.teal, action: #selector(copyAllClicked))
         headerView.addSubview(copyButton)
 
-        // Close button
         setupTopButton(closeButton, title: "✕", tooltip: "Hide Basket (press Escape or click)", color: Catppuccin.red, action: #selector(closeClicked))
         headerView.addSubview(closeButton)
 
@@ -306,47 +302,48 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         emptyView.translatesAutoresizingMaskIntoConstraints = false
         catppuccinBackground.addSubview(emptyView)
 
-        emptyIconLabel.font = NSFont.systemFont(ofSize: 52)
+        emptyIconLabel.font = NSFont.systemFont(ofSize: 56)
         emptyIconLabel.alignment = .center
         emptyIconLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyView.addSubview(emptyIconLabel)
 
-        emptyTitleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
+        emptyTitleLabel.font = NSFont.systemFont(ofSize: 16, weight: .heavy)
         emptyTitleLabel.alignment = .center
         emptyTitleLabel.textColor = Catppuccin.text
         emptyTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyView.addSubview(emptyTitleLabel)
 
-        emptySubtitleLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        emptySubtitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         emptySubtitleLabel.alignment = .center
         emptySubtitleLabel.textColor = Catppuccin.subtext0
         emptySubtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyView.addSubview(emptySubtitleLabel)
 
-        emptyModeHint.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold)
+        emptyModeHint.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
         emptyModeHint.alignment = .center
         emptyModeHint.textColor = Catppuccin.teal
         emptyModeHint.translatesAutoresizingMaskIntoConstraints = false
         emptyView.addSubview(emptyModeHint)
 
-        collectFinderButton.bezelStyle = .inline
-        collectFinderButton.isBordered = false
-        collectFinderButton.wantsLayer = true
-        collectFinderButton.layer?.cornerRadius = 8
-        collectFinderButton.layer?.backgroundColor = Catppuccin.lavender.cgColor
-        collectFinderButton.target = self
-        collectFinderButton.action = #selector(collectFinderClicked)
+        importFinderButton.bezelStyle = .inline
+        importFinderButton.isBordered = false
+        importFinderButton.wantsLayer = true
+        importFinderButton.layer?.cornerRadius = 6
+        importFinderButton.layer?.backgroundColor = Catppuccin.surface0.cgColor
+        importFinderButton.target = self
+        importFinderButton.action = #selector(importFinderClicked)
+        importFinderButton.toolTip = "Import selected files from Finder without dragging"
 
         let attr = NSAttributedString(
-            string: "Collect Finder Selected Items",
+            string: "Import Finder Selection",
             attributes: [
-                .foregroundColor: Catppuccin.crust,
-                .font: NSFont.systemFont(ofSize: 12, weight: .bold)
+                .foregroundColor: Catppuccin.lavender,
+                .font: NSFont.systemFont(ofSize: 11, weight: .semibold)
             ]
         )
-        collectFinderButton.attributedTitle = attr
-        collectFinderButton.translatesAutoresizingMaskIntoConstraints = false
-        emptyView.addSubview(collectFinderButton)
+        importFinderButton.attributedTitle = attr
+        importFinderButton.translatesAutoresizingMaskIntoConstraints = false
+        emptyView.addSubview(importFinderButton)
 
         NSLayoutConstraint.activate([
             emptyView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 12),
@@ -355,7 +352,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             emptyView.bottomAnchor.constraint(equalTo: catppuccinBackground.bottomAnchor, constant: -58),
 
             emptyIconLabel.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
-            emptyIconLabel.topAnchor.constraint(equalTo: emptyView.topAnchor, constant: 36),
+            emptyIconLabel.topAnchor.constraint(equalTo: emptyView.topAnchor, constant: 40),
 
             emptyTitleLabel.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
             emptyTitleLabel.topAnchor.constraint(equalTo: emptyIconLabel.bottomAnchor, constant: 12),
@@ -366,12 +363,12 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             emptySubtitleLabel.trailingAnchor.constraint(equalTo: emptyView.trailingAnchor, constant: -16),
 
             emptyModeHint.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
-            emptyModeHint.topAnchor.constraint(equalTo: emptySubtitleLabel.bottomAnchor, constant: 8),
+            emptyModeHint.topAnchor.constraint(equalTo: emptySubtitleLabel.bottomAnchor, constant: 10),
 
-            collectFinderButton.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
-            collectFinderButton.topAnchor.constraint(equalTo: emptyModeHint.bottomAnchor, constant: 18),
-            collectFinderButton.heightAnchor.constraint(equalToConstant: 28),
-            collectFinderButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            importFinderButton.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
+            importFinderButton.topAnchor.constraint(equalTo: emptyModeHint.bottomAnchor, constant: 20),
+            importFinderButton.heightAnchor.constraint(equalToConstant: 24),
+            importFinderButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
         ])
     }
 
@@ -384,15 +381,11 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         itemsStackView.orientation = .vertical
+        itemsStackView.alignment = .width
         itemsStackView.spacing = 6
-        itemsStackView.alignment = .leading
         itemsStackView.translatesAutoresizingMaskIntoConstraints = false
 
-        let clipView = NSClipView()
-        clipView.drawsBackground = false
-        clipView.documentView = itemsStackView
-        scrollView.contentView = clipView
-
+        scrollView.documentView = itemsStackView
         populatedView.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
@@ -406,9 +399,10 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             scrollView.trailingAnchor.constraint(equalTo: populatedView.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: populatedView.bottomAnchor),
 
-            itemsStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            itemsStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            itemsStackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            itemsStackView.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor),
+            itemsStackView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor),
+            itemsStackView.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor),
+            itemsStackView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
         ])
     }
 
@@ -485,24 +479,24 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         containerView.onDraggingEntered = { [weak self] info in
             BasketPanel.shared.cancelAutoHideTimer()
             let isCmd = NSEvent.modifierFlags.contains(.command)
-            self?.emptyModeHint.stringValue = isCmd ? "⌘ Move Mode Detected" : "Copy Mode (Hold ⌘ to Move)"
+            self?.emptyTitleLabel.stringValue = "Release Mouse to Drop"
+            self?.emptyModeHint.stringValue = isCmd ? "⌘ Move Mode: Will move original files" : "Copy Mode: Keeps original files"
             self?.emptyModeHint.textColor = isCmd ? Catppuccin.peach : Catppuccin.teal
             return isCmd ? .move : [.copy, .generic]
         }
 
         containerView.onDraggingUpdated = { [weak self] info in
             let isCmd = NSEvent.modifierFlags.contains(.command)
-            self?.emptyModeHint.stringValue = isCmd ? "⌘ Move Mode Detected" : "Copy Mode (Hold ⌘ to Move)"
+            self?.emptyTitleLabel.stringValue = "Release Mouse to Drop"
+            self?.emptyModeHint.stringValue = isCmd ? "⌘ Move Mode: Will move original files" : "Copy Mode: Keeps original files"
             self?.emptyModeHint.textColor = isCmd ? Catppuccin.peach : Catppuccin.teal
             return isCmd ? .move : [.copy, .generic]
         }
 
         containerView.onDraggingExited = { [weak self] _ in
+            self?.emptyTitleLabel.stringValue = "Release Mouse to Drop Files"
             self?.emptyModeHint.stringValue = "Default: Copy • Hold ⌘ to Move"
             self?.emptyModeHint.textColor = Catppuccin.teal
-            if self?.model.isEmpty == true {
-                BasketPanel.shared.startAutoHideTimer()
-            }
         }
 
         containerView.onPerformDrag = { [weak self] urls, isCmd in
@@ -510,6 +504,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             let shouldMove = isCmd || AppSettings.shared.defaultActionIsMove
             let added = self.model.add(urls: urls, isMove: shouldMove)
             BasketPanel.shared.cancelAutoHideTimer()
+            self.refreshUI()
             return added > 0
         }
     }
@@ -536,22 +531,23 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             moveToButton.isEnabled = false
             clearButton.isEnabled = false
 
+            emptyTitleLabel.stringValue = "Release Mouse to Drop Files"
             emptyModeHint.stringValue = "Default: Copy • Hold ⌘ to Move"
             emptyModeHint.textColor = Catppuccin.teal
 
             let selCount = FinderHelper.shared.getSelectedURLs().count
             if selCount > 0 {
-                collectFinderButton.isHidden = false
+                importFinderButton.isHidden = false
                 let attr = NSAttributedString(
-                    string: "Collect \(selCount) Finder Item\(selCount > 1 ? "s" : "")",
+                    string: "Import \(selCount) Finder Selected Item\(selCount > 1 ? "s" : "")",
                     attributes: [
-                        .foregroundColor: Catppuccin.crust,
-                        .font: NSFont.systemFont(ofSize: 12, weight: .bold)
+                        .foregroundColor: Catppuccin.lavender,
+                        .font: NSFont.systemFont(ofSize: 11, weight: .semibold)
                     ]
                 )
-                collectFinderButton.attributedTitle = attr
+                importFinderButton.attributedTitle = attr
             } else {
-                collectFinderButton.isHidden = true
+                importFinderButton.isHidden = true
             }
         } else {
             emptyView.isHidden = true
@@ -570,7 +566,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             for item in model.items {
                 let row = BasketItemRowView(item: item)
                 row.translatesAutoresizingMaskIntoConstraints = false
-                row.widthAnchor.constraint(equalTo: itemsStackView.widthAnchor).isActive = true
+                row.heightAnchor.constraint(equalToConstant: 74).isActive = true
                 row.onRemove = { [weak self] in
                     self?.model.remove(item: item)
                 }
@@ -590,6 +586,8 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
                 }
                 itemsStackView.addArrangedSubview(row)
             }
+            itemsStackView.layoutSubtreeIfNeeded()
+            scrollView.layoutSubtreeIfNeeded()
         }
     }
 
@@ -629,7 +627,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         updateModeButtonTitle()
     }
 
-    @objc private func collectFinderClicked() {
+    @objc private func importFinderClicked() {
         let urls = FinderHelper.shared.getSelectedURLs()
         if !urls.isEmpty {
             let isCmd = NSEvent.modifierFlags.contains(.command)
@@ -658,7 +656,6 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         }
     }
 
-    // Spacebar to trigger Quick Look
     public override func keyDown(with event: NSEvent) {
         if event.keyCode == 49 { // Spacebar
             let urls = model.items.map { $0.url }
@@ -677,8 +674,5 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
 
     public func basketDidUpdate(_ model: BasketModel) {
         refreshUI()
-        if model.isEmpty {
-            BasketPanel.shared.startAutoHideTimer()
-        }
     }
 }
