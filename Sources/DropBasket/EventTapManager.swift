@@ -10,8 +10,22 @@
 import Cocoa
 import CoreGraphics
 
-@MainActor
-public final class EventTapManager: ShakeDetectorDelegate {
+// Top-level nonisolated C-callback to eliminate any Swift actor check and SIGTRAP crashes
+private func dropBasketEventTapCallback(
+    proxy: CGEventTapProxy,
+    type: CGEventType,
+    event: CGEvent,
+    refcon: UnsafeMutableRawPointer?
+) -> Unmanaged<CGEvent>? {
+    guard let refcon = refcon else {
+        return Unmanaged.passUnretained(event)
+    }
+    let manager = Unmanaged<EventTapManager>.fromOpaque(refcon).takeUnretainedValue()
+    manager.handleCGEvent(type: type, event: event)
+    return Unmanaged.passUnretained(event)
+}
+
+public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
     public static let shared = EventTapManager()
 
     private var eventTap: CFMachPort?
@@ -28,10 +42,13 @@ public final class EventTapManager: ShakeDetectorDelegate {
     public func start() -> Bool {
         stop()
 
-        let mask = (1 << CGEventType.leftMouseDown.rawValue) |
+        var mask = (1 << CGEventType.leftMouseDown.rawValue) |
                    (1 << CGEventType.leftMouseDragged.rawValue) |
-                   (1 << CGEventType.leftMouseUp.rawValue) |
-                   (1 << CGEventType.mouseMoved.rawValue)
+                   (1 << CGEventType.leftMouseUp.rawValue)
+
+        if AppSettings.shared.triggerOnFinderSelection {
+            mask |= (1 << CGEventType.mouseMoved.rawValue)
+        }
 
         let refcon = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
@@ -40,14 +57,7 @@ public final class EventTapManager: ShakeDetectorDelegate {
             place: .headInsertEventTap,
             options: .listenOnly,
             eventsOfInterest: CGEventMask(mask),
-            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-                guard let refcon = refcon else {
-                    return Unmanaged.passUnretained(event)
-                }
-                let manager = Unmanaged<EventTapManager>.fromOpaque(refcon).takeUnretainedValue()
-                manager.handleCGEvent(type: type, event: event)
-                return Unmanaged.passUnretained(event)
-            },
+            callback: dropBasketEventTapCallback,
             userInfo: refcon
         )
 
@@ -76,12 +86,10 @@ public final class EventTapManager: ShakeDetectorDelegate {
         }
     }
 
-    nonisolated private func handleCGEvent(type: CGEventType, event: CGEvent) {
+    public func handleCGEvent(type: CGEventType, event: CGEvent) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            Task { @MainActor in
-                if let tap = self.eventTap {
-                    CGEvent.tapEnable(tap: tap, enable: true)
-                }
+            if let tap = self.eventTap {
+                CGEvent.tapEnable(tap: tap, enable: true)
             }
             return
         }
@@ -103,28 +111,25 @@ public final class EventTapManager: ShakeDetectorDelegate {
 
     // MARK: - ShakeDetectorDelegate
 
-    nonisolated public func didDetectShake(at point: CGPoint, isDragging: Bool) {
-        Task { @MainActor in
-            self.handleShakeOnMain(at: point, isDragging: isDragging)
-        }
-    }
-
-    nonisolated public func didEndDrag(at point: CGPoint) {
-        Task { @MainActor in
-            self.onDragEnded?(point)
-        }
-    }
-
-    private func handleShakeOnMain(at point: CGPoint, isDragging: Bool) {
-        if isDragging {
-            self.onShakeDetected?(point, true)
-        } else {
-            if FinderHelper.shared.isFinderFrontmost {
-                let sel = FinderHelper.shared.getSelectedURLs()
-                if !sel.isEmpty {
-                    self.onShakeDetected?(point, false)
+    public func didDetectShake(at point: CGPoint, isDragging: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if isDragging {
+                self.onShakeDetected?(point, true)
+            } else {
+                if FinderHelper.shared.isFinderFrontmost {
+                    let sel = FinderHelper.shared.getSelectedURLs()
+                    if !sel.isEmpty {
+                        self.onShakeDetected?(point, false)
+                    }
                 }
             }
+        }
+    }
+
+    public func didEndDrag(at point: CGPoint) {
+        DispatchQueue.main.async { [weak self] in
+            self?.onDragEnded?(point)
         }
     }
 }

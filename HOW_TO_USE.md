@@ -20,6 +20,7 @@ Launch DropBasket using either:
   ```
 
 DropBasket runs in the background as an accessory panel (`LSUIElement`) with a 🧺 menu bar icon.
+If DropBasket is already running, typing `dropbasket` will automatically bring the floating basket to your cursor!
 
 ---
 
@@ -31,7 +32,7 @@ Select files in Finder, Safari, or any app, and begin dragging them.
 ### Step 2: Gentle Wrist Shake
 - While holding the left mouse button, **gently flick your wrist back and forth**.
 - Thanks to the optimized sensitivity threshold (just 8px movement and 2 directional reversals), the slightest quick wiggle instantly triggers summon.
-- **Notice the positioning:** DropBasket appears **directly under your cursor**.
+- **Notice the positioning:** DropBasket appears **directly centered under your cursor**.
 
 ### Step 3: Zero-Movement Drop (Copy vs ⌘ Move)
 - **Standard Copy:** Simply release the left mouse button right where you are. The files drop into the basket.
@@ -39,10 +40,10 @@ Select files in Finder, Safari, or any app, and begin dragging them.
 
 ### Step 4: Inspect Rich File Metadata
 Once dropped, each file in the basket displays:
-* **Icon & Extension Pill:** 38x38 high-res system icon with a mono-spaced badge (`[PDF]`, `[PNG]`, `[SWIFT]`, `[DIR]`).
+* **Icon & Extension Pill:** 42x42 high-res system icon with a mono-spaced badge (`[PDF]`, `[PNG]`, `[SWIFT]`, `[DIR]`).
 * **File Name:** Full legible name in Catppuccin Text (`#cdd6f4`).
 * **Kind & Size:** Detailed localized type (e.g. `Portable Document Format • 14.2 MB`) in Catppuccin Subtext0 (`#a6adc8`).
-* **Directory & Modification Date:** Parent folder and human-friendly date (`📁 in Downloads • Today, 04:30`) in Catppuccin Overlay1 (`#7f849c`).
+* **Directory & Modification Date:** Parent folder and human-friendly date (`📁 in Downloads • Today, 4:30 PM`) in Catppuccin Overlay1 (`#7f849c`).
 * **Mode Badge:** Clickable `[COPY]` (Teal) or `[⌘ MOVE]` (Peach) pill to toggle between Copy and Move at any time.
 
 ### Step 5: Switch AeroSpace Workspaces
@@ -54,6 +55,19 @@ Once dropped, each file in the basket displays:
 - **All Files at Once:** Click and drag the **`📦 Drag All`** button in the header.
 - **Clipboard:** Click **`📋`** to copy files, switch to your target folder, and press `Cmd+V`.
 - **Move to... Folder:** Click **`Move to...`** in the footer to choose a folder dialog.
+
+---
+
+## 🍸 Menu Bar Hint & Controls
+
+The macOS menu bar displays a native 🧺 basket icon:
+* **Empty Basket:** Shows clean template icon `🧺`.
+* **Holding Files:** Displays live count hint `🧺 2` and detailed tooltip.
+* **Click to Open Menu:**
+  - `Show / Hide Floating Basket` (or press `Ctrl+Option+B`).
+  - Active AeroSpace Workspace status.
+  - Quick actions: Copy All, Collect Finder Selection, Clear.
+  - Drop mode settings (Copy vs Move) and Shake Sensitivity.
 
 ---
 
@@ -84,13 +98,16 @@ Once dropped, each file in the basket displays:
 ## 💻 CLI Commands for Terminal Users
 
 ```bash
+# Check if running; summon basket if already active:
+dropbasket
+
 # Add files from terminal:
 dropbasket add ~/Downloads/document.pdf
 
 # List files and metadata in basket:
 dropbasket list
 
-# Check status:
+# Check status and active AeroSpace workspace:
 dropbasket status
 
 # Show or hide:
@@ -99,6 +116,10 @@ dropbasket hide
 
 # Clear basket:
 dropbasket clear
+
+# Stop or restart:
+dropbasket stop
+dropbasket restart
 ```
 
 ---

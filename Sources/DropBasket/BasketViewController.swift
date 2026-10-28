@@ -10,7 +10,7 @@
 import Cocoa
 
 @MainActor
-public class BasketRootDropView: NSView {
+public class BasketRootDropView: FlippedView {
     public var onDraggingEntered: ((NSDraggingInfo) -> NSDragOperation)?
     public var onDraggingUpdated: ((NSDraggingInfo) -> NSDragOperation)?
     public var onDraggingExited: ((NSDraggingInfo?) -> Void)?
@@ -25,14 +25,15 @@ public class BasketRootDropView: NSView {
             .fileURL,
             .URL,
             .string,
-            NSPasteboard.PasteboardType("NSFilenamesPboardType")
+            NSPasteboard.PasteboardType("NSFilenamesPboardType"),
+            NSPasteboard.PasteboardType("public.file-url")
         ])
         wantsLayer = true
         layer?.cornerRadius = 16
         layer?.masksToBounds = true
     }
 
-    required init?(coder: NSCoder) {
+    required public init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -74,8 +75,8 @@ public class BasketRootDropView: NSView {
     private func extractURLs(from pasteboard: NSPasteboard) -> [URL] {
         var results: [URL] = []
 
-        // Method 1: readObjects with NSURL
-        if let nsUrls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [NSURL] {
+        // Method 1: readObjects with NSURL (file URLs only)
+        if let nsUrls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [NSURL] {
             for u in nsUrls {
                 if let fileUrl = u.filePathURL ?? (u as URL).standardizedFileURL as URL? {
                     results.append(fileUrl)
@@ -83,11 +84,11 @@ public class BasketRootDropView: NSView {
             }
         }
 
-        // Method 2: pasteboardItems with .fileURL
-        if results.isEmpty, let items = pasteboard.pasteboardItems {
-            for item in items {
-                if let str = item.string(forType: .fileURL), let u = URL(string: str) {
-                    results.append(u.standardizedFileURL)
+        // Method 2: readObjects without options
+        if results.isEmpty, let nsUrls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [NSURL] {
+            for u in nsUrls {
+                if let fileUrl = u.filePathURL ?? (u as URL).standardizedFileURL as URL? {
+                    results.append(fileUrl)
                 }
             }
         }
@@ -99,9 +100,32 @@ public class BasketRootDropView: NSView {
             }
         }
 
-        // Method 4: string forType .fileURL
+        // Method 4: pasteboardItems with .fileURL or public.file-url
+        if results.isEmpty, let items = pasteboard.pasteboardItems {
+            for item in items {
+                if let str = item.string(forType: .fileURL) ?? item.string(forType: NSPasteboard.PasteboardType("public.file-url")),
+                   let u = URL(string: str) {
+                    results.append(u.standardizedFileURL)
+                }
+            }
+        }
+
+        // Method 5: string forType .fileURL
         if results.isEmpty, let str = pasteboard.string(forType: .fileURL), let u = URL(string: str) {
             results.append(u.standardizedFileURL)
+        }
+
+        // Method 6: string fallback for local paths
+        if results.isEmpty, let rawStr = pasteboard.string(forType: .string) {
+            let lines = rawStr.components(separatedBy: .newlines)
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.hasPrefix("file://"), let u = URL(string: trimmed) {
+                    results.append(u.standardizedFileURL)
+                } else if FileManager.default.fileExists(atPath: (trimmed as NSString).expandingTildeInPath) {
+                    results.append(URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath).standardizedFileURL)
+                }
+            }
         }
 
         // Deduplicate
@@ -134,13 +158,13 @@ public class BasketRootDropView: NSView {
 
 @MainActor
 public class BasketViewController: NSViewController, BasketModelDelegate {
-    private let model = BasketModel.shared
-    private let containerView = BasketRootDropView()
+    public let model = BasketModel.shared
+    public let containerView = BasketRootDropView()
     private let visualEffectView = NSVisualEffectView()
-    private let catppuccinBackground = NSView()
+    private let catppuccinBackground = FlippedView()
 
     // Header views
-    private let headerView = NSView()
+    private let headerView = FlippedView()
     private let titleLabel = NSTextField(labelWithString: "🧺 DropBasket")
     private let spacePill = NSTextField(labelWithString: "")
     private let countBadge = NSTextField(labelWithString: "")
@@ -149,20 +173,20 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
     private let closeButton = NSButton()
 
     // Empty state views (Dedicated Drop Zone)
-    private let emptyView = NSView()
+    private let emptyView = FlippedView()
     private let emptyIconLabel = NSTextField(labelWithString: "🧺")
-    private let emptyTitleLabel = NSTextField(labelWithString: "Release Mouse to Drop Files")
-    private let emptySubtitleLabel = NSTextField(labelWithString: "Default: Copy • Hold ⌘ to Move\nShake cursor anywhere while dragging to summon")
+    private let emptyTitleLabel = NSTextField(labelWithString: "Drop Files Here")
+    private let emptySubtitleLabel = NSTextField(labelWithString: "Release mouse to drop • Pinned across all AeroSpace spaces\nShake cursor while dragging files to summon anytime")
     private let emptyModeHint = NSTextField(labelWithString: "")
     private let importFinderButton = NSButton()
 
     // Populated state views
-    private let populatedView = NSView()
+    private let populatedView = FlippedView()
     private let scrollView = NSScrollView()
     private let itemsStackView = NSStackView()
 
     // Footer views
-    private let footerView = NSView()
+    private let footerView = FlippedView()
     private let modeButton = NSButton()
     private let moveToButton = NSButton()
     private let clearButton = NSButton()
@@ -302,7 +326,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         emptyView.translatesAutoresizingMaskIntoConstraints = false
         catppuccinBackground.addSubview(emptyView)
 
-        emptyIconLabel.font = NSFont.systemFont(ofSize: 56)
+        emptyIconLabel.font = NSFont.systemFont(ofSize: 52)
         emptyIconLabel.alignment = .center
         emptyIconLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyView.addSubview(emptyIconLabel)
@@ -332,10 +356,10 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         importFinderButton.layer?.backgroundColor = Catppuccin.surface0.cgColor
         importFinderButton.target = self
         importFinderButton.action = #selector(importFinderClicked)
-        importFinderButton.toolTip = "Import selected files from Finder without dragging"
+        importFinderButton.toolTip = "Import selected files from Finder (or drag & drop directly)"
 
         let attr = NSAttributedString(
-            string: "Import Finder Selection",
+            string: "📥 Import Finder Selection",
             attributes: [
                 .foregroundColor: Catppuccin.lavender,
                 .font: NSFont.systemFont(ofSize: 11, weight: .semibold)
@@ -352,7 +376,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             emptyView.bottomAnchor.constraint(equalTo: catppuccinBackground.bottomAnchor, constant: -58),
 
             emptyIconLabel.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
-            emptyIconLabel.topAnchor.constraint(equalTo: emptyView.topAnchor, constant: 40),
+            emptyIconLabel.topAnchor.constraint(equalTo: emptyView.topAnchor, constant: 36),
 
             emptyTitleLabel.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
             emptyTitleLabel.topAnchor.constraint(equalTo: emptyIconLabel.bottomAnchor, constant: 12),
@@ -366,9 +390,9 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             emptyModeHint.topAnchor.constraint(equalTo: emptySubtitleLabel.bottomAnchor, constant: 10),
 
             importFinderButton.centerXAnchor.constraint(equalTo: emptyView.centerXAnchor),
-            importFinderButton.topAnchor.constraint(equalTo: emptyModeHint.bottomAnchor, constant: 20),
-            importFinderButton.heightAnchor.constraint(equalToConstant: 24),
-            importFinderButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
+            importFinderButton.topAnchor.constraint(equalTo: emptyModeHint.bottomAnchor, constant: 22),
+            importFinderButton.heightAnchor.constraint(equalToConstant: 26),
+            importFinderButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
         ])
     }
 
@@ -380,6 +404,11 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         scrollView.drawsBackground = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
+        // Custom FlippedClipView ensures items start from top and scroll downward
+        let clipView = FlippedClipView()
+        clipView.drawsBackground = false
+        scrollView.contentView = clipView
+
         itemsStackView.orientation = .vertical
         itemsStackView.alignment = .width
         itemsStackView.spacing = 6
@@ -389,7 +418,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         populatedView.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            populatedView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 10),
+            populatedView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
             populatedView.leadingAnchor.constraint(equalTo: catppuccinBackground.leadingAnchor, constant: 12),
             populatedView.trailingAnchor.constraint(equalTo: catppuccinBackground.trailingAnchor, constant: -12),
             populatedView.bottomAnchor.constraint(equalTo: catppuccinBackground.bottomAnchor, constant: -58),
@@ -494,7 +523,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
         }
 
         containerView.onDraggingExited = { [weak self] _ in
-            self?.emptyTitleLabel.stringValue = "Release Mouse to Drop Files"
+            self?.emptyTitleLabel.stringValue = "Drop Files Here"
             self?.emptyModeHint.stringValue = "Default: Copy • Hold ⌘ to Move"
             self?.emptyModeHint.textColor = Catppuccin.teal
         }
@@ -531,7 +560,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             moveToButton.isEnabled = false
             clearButton.isEnabled = false
 
-            emptyTitleLabel.stringValue = "Release Mouse to Drop Files"
+            emptyTitleLabel.stringValue = "Drop Files Here"
             emptyModeHint.stringValue = "Default: Copy • Hold ⌘ to Move"
             emptyModeHint.textColor = Catppuccin.teal
 
@@ -539,7 +568,7 @@ public class BasketViewController: NSViewController, BasketModelDelegate {
             if selCount > 0 {
                 importFinderButton.isHidden = false
                 let attr = NSAttributedString(
-                    string: "Import \(selCount) Finder Selected Item\(selCount > 1 ? "s" : "")",
+                    string: "📥 Import \(selCount) Finder Selected Item\(selCount > 1 ? "s" : "")",
                     attributes: [
                         .foregroundColor: Catppuccin.lavender,
                         .font: NSFont.systemFont(ofSize: 11, weight: .semibold)

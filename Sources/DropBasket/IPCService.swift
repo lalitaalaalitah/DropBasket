@@ -144,6 +144,12 @@ public final class IPCService: @unchecked Sendable {
             let ws = AeroSpaceHelper.shared.getFocusedWorkspace() ?? "Unknown"
             return "STATUS running=true visible=\(isVis) items=\(count) workspace=\(ws)\n"
 
+        case "QUIT", "STOP":
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NSApplication.shared.terminate(nil)
+            }
+            return "OK DropBasket terminating\n"
+
         case "ADD":
             let filePaths = parts.dropFirst()
             var urls: [URL] = []

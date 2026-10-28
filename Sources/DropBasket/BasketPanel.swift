@@ -109,8 +109,9 @@ public class BasketPanel: NSPanel {
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.15
             self.animator().alphaValue = 0.0
-        }, completionHandler: {
-            MainActor.assumeIsolated {
+        }, completionHandler: { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
                 self.orderOut(nil)
                 self.alphaValue = 1.0
             }
@@ -147,5 +148,29 @@ public class BasketPanel: NSPanel {
 
     public override var canBecomeMain: Bool {
         return false
+    }
+}
+
+// MARK: - NSDraggingDestination Window Forwarding
+
+extension BasketPanel: NSDraggingDestination {
+    public func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        return basketVC.containerView.draggingEntered(sender)
+    }
+
+    public func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        return basketVC.containerView.draggingUpdated(sender)
+    }
+
+    public func draggingExited(_ sender: NSDraggingInfo?) {
+        basketVC.containerView.draggingExited(sender)
+    }
+
+    public func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        return basketVC.containerView.prepareForDragOperation(sender)
+    }
+
+    public func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        return basketVC.containerView.performDragOperation(sender)
     }
 }

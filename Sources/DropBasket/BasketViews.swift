@@ -10,6 +10,16 @@
 import Cocoa
 import Quartz
 
+// MARK: - Flipped Base Views for Consistent Top-to-Bottom Layout
+
+open class FlippedView: NSView {
+    public override var isFlipped: Bool { return true }
+}
+
+open class FlippedClipView: NSClipView {
+    public override var isFlipped: Bool { return true }
+}
+
 // MARK: - Draggable Button (for "Drag All")
 
 @MainActor
@@ -91,7 +101,7 @@ public class DraggableAllButton: NSButton, NSDraggingSource {
 // MARK: - Draggable Item Row View with Rich Metadata (Catppuccin Themed)
 
 @MainActor
-public class BasketItemRowView: NSView, NSDraggingSource {
+public class BasketItemRowView: FlippedView, NSDraggingSource {
     public let item: BasketItem
     public var onRemove: (() -> Void)?
     public var onReveal: (() -> Void)?
@@ -127,7 +137,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         setupUI()
     }
 
-    required init?(coder: NSCoder) {
+    required public init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -144,6 +154,8 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         nameLabel.textColor = Catppuccin.text
         nameLabel.lineBreakMode = .byTruncatingMiddle
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         addSubview(nameLabel)
 
         // Extension pill badge
@@ -155,9 +167,11 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         extBadge.layer?.backgroundColor = Catppuccin.mantle.cgColor
         extBadge.layer?.masksToBounds = true
         extBadge.translatesAutoresizingMaskIntoConstraints = false
+        extBadge.setContentHuggingPriority(.required, for: .horizontal)
+        extBadge.setContentCompressionResistancePriority(.required, for: .horizontal)
         addSubview(extBadge)
 
-        // Kind and Size (e.g. "PNG Image • 2.4 MB")
+        // Kind and Size (e.g. "PNG image • 2.4 MB")
         kindAndSizeLabel.stringValue = "\(item.kind) • \(item.sizeString)"
         kindAndSizeLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         kindAndSizeLabel.textColor = Catppuccin.subtext0
@@ -165,7 +179,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         kindAndSizeLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(kindAndSizeLabel)
 
-        // Directory and Date (e.g. "📁 in Downloads • Today, 04:30")
+        // Directory and Date (e.g. "📁 in Downloads • Today, 4:30 PM")
         dirAndDateLabel.stringValue = "📁 in \(item.directoryName) • \(item.modificationDateString)"
         dirAndDateLabel.font = NSFont.systemFont(ofSize: 10, weight: .regular)
         dirAndDateLabel.textColor = Catppuccin.overlay1
@@ -173,7 +187,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         dirAndDateLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dirAndDateLabel)
 
-        // Mode badge button ([COPY] or [MOVE])
+        // Mode badge button ([COPY] or [⌘ MOVE])
         updateModeBadge()
         modeBadgeButton.isBordered = false
         modeBadgeButton.wantsLayer = true
@@ -185,7 +199,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         addSubview(modeBadgeButton)
 
         // Action buttons
-        setupActionButton(previewBtn, title: "👁", tooltip: "Quick Look (Space)", color: Catppuccin.lavender, action: #selector(previewClicked))
+        setupActionButton(previewBtn, title: "👁", tooltip: "Quick Look preview (Space)", color: Catppuccin.lavender, action: #selector(previewClicked))
         setupActionButton(revealBtn, title: "↗", tooltip: "Reveal in Finder", color: Catppuccin.sky, action: #selector(revealClicked))
         setupActionButton(removeBtn, title: "✕", tooltip: "Remove from Basket", color: Catppuccin.red, action: #selector(removeClicked))
 
@@ -198,25 +212,25 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 40),
-            iconView.heightAnchor.constraint(equalToConstant: 40),
+            iconView.widthAnchor.constraint(equalToConstant: 42),
+            iconView.heightAnchor.constraint(equalToConstant: 42),
 
             nameLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
-            nameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            nameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 9),
 
             extBadge.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 6),
             extBadge.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
             extBadge.trailingAnchor.constraint(lessThanOrEqualTo: btnStack.leadingAnchor, constant: -6),
 
             kindAndSizeLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
-            kindAndSizeLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 3),
-            kindAndSizeLabel.trailingAnchor.constraint(equalTo: btnStack.leadingAnchor, constant: -6),
+            kindAndSizeLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
+            kindAndSizeLabel.trailingAnchor.constraint(lessThanOrEqualTo: btnStack.leadingAnchor, constant: -6),
 
             dirAndDateLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
-            dirAndDateLabel.topAnchor.constraint(equalTo: kindAndSizeLabel.bottomAnchor, constant: 2),
-            dirAndDateLabel.trailingAnchor.constraint(equalTo: modeBadgeButton.leadingAnchor, constant: -6),
+            dirAndDateLabel.topAnchor.constraint(equalTo: kindAndSizeLabel.bottomAnchor, constant: 3),
+            dirAndDateLabel.trailingAnchor.constraint(lessThanOrEqualTo: modeBadgeButton.leadingAnchor, constant: -6),
 
-            modeBadgeButton.trailingAnchor.constraint(equalTo: btnStack.leadingAnchor, constant: -8),
+            modeBadgeButton.trailingAnchor.constraint(equalTo: btnStack.leadingAnchor, constant: -6),
             modeBadgeButton.centerYAnchor.constraint(equalTo: dirAndDateLabel.centerYAnchor),
             modeBadgeButton.heightAnchor.constraint(equalToConstant: 18),
 
@@ -231,7 +245,7 @@ public class BasketItemRowView: NSView, NSDraggingSource {
         let isMove = item.isMoveOperation
         let text = isMove ? " ⌘ MOVE " : " COPY "
         let color = isMove ? Catppuccin.peach : Catppuccin.teal
-        let bg = isMove ? Catppuccin.peach.withAlphaComponent(0.2) : Catppuccin.teal.withAlphaComponent(0.2)
+        let bg = isMove ? Catppuccin.peach.withAlphaComponent(0.18) : Catppuccin.teal.withAlphaComponent(0.18)
 
         let attr = NSAttributedString(
             string: text,

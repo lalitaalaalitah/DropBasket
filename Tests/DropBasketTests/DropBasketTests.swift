@@ -35,6 +35,7 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(Metadata.github == "https://github.com/lalitaalaalitah")
         #expect(Metadata.appVersion == "1.0.0")
         #expect(Metadata.bundleIdentifier == "com.lalitaalaalitah.DropBasket")
+        #expect(CLI.__version__ == "1.0.0")
     }
 
     @Test func testCatppuccinMochaPalette() {
@@ -130,5 +131,51 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 
         try? FileManager.default.removeItem(at: fileA)
         try? FileManager.default.removeItem(at: fileB)
+    }
+}
+
+@Suite struct BasketViewsTests {
+    @Test @MainActor func testBasketItemRowViewFlippedAndMetadata() {
+        let tempDir = FileManager.default.temporaryDirectory
+        let sampleFile = tempDir.appendingPathComponent("Report.pdf")
+        try? "PDF Sample Data".write(to: sampleFile, atomically: true, encoding: .utf8)
+
+        let item = BasketItem(url: sampleFile, isMove: false)
+        let rowView = BasketItemRowView(item: item)
+
+        #expect(rowView.isFlipped == true)
+        #expect(rowView.intrinsicContentSize.height == 74)
+
+        // Verify layout can execute without crashing
+        rowView.frame = NSRect(x: 0, y: 0, width: 376, height: 74)
+        rowView.layoutSubtreeIfNeeded()
+
+        #expect(rowView.subviews.count >= 6)
+
+        try? FileManager.default.removeItem(at: sampleFile)
+    }
+
+    @Test @MainActor func testMenuBarIconAndBadge() {
+        let menuBar = MenuBarController.shared
+        menuBar.setup()
+        menuBar.updateStatusItemIconAndTitle()
+
+        let model = BasketModel.shared
+        model.clear()
+        menuBar.updateStatusItemIconAndTitle()
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sample = tempDir.appendingPathComponent("Test.txt")
+        try? "Test".write(to: sample, atomically: true, encoding: .utf8)
+
+        model.add(urls: [sample], isMove: false)
+        menuBar.updateStatusItemIconAndTitle()
+        #expect(model.count == 1)
+
+        model.clear()
+        menuBar.updateStatusItemIconAndTitle()
+        #expect(model.count == 0)
+
+        try? FileManager.default.removeItem(at: sample)
     }
 }

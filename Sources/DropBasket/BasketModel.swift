@@ -10,6 +10,10 @@
 import Cocoa
 import UniformTypeIdentifiers
 
+extension Notification.Name {
+    public static let basketModelDidUpdate = Notification.Name("DropBasket.basketModelDidUpdate")
+}
+
 public struct BasketItem: Identifiable, Equatable, @unchecked Sendable {
     public let id: UUID
     public let url: URL
@@ -145,6 +149,7 @@ public class BasketModel {
                 NSSound(named: "Pop")?.play()
             }
             delegate?.basketDidUpdate(self)
+            NotificationCenter.default.post(name: .basketModelDidUpdate, object: self)
         }
         return addedCount
     }
@@ -152,18 +157,21 @@ public class BasketModel {
     public func remove(item: BasketItem) {
         items.removeAll(where: { $0.id == item.id })
         delegate?.basketDidUpdate(self)
+        NotificationCenter.default.post(name: .basketModelDidUpdate, object: self)
     }
 
     public func remove(at index: Int) {
         guard index >= 0 && index < items.count else { return }
         items.remove(at: index)
         delegate?.basketDidUpdate(self)
+        NotificationCenter.default.post(name: .basketModelDidUpdate, object: self)
     }
 
     public func toggleMove(item: BasketItem) {
         if let idx = items.firstIndex(where: { $0.id == item.id }) {
             items[idx].isMoveOperation.toggle()
             delegate?.basketDidUpdate(self)
+            NotificationCenter.default.post(name: .basketModelDidUpdate, object: self)
         }
     }
 
@@ -172,6 +180,7 @@ public class BasketModel {
             items[i].isMoveOperation = isMove
         }
         delegate?.basketDidUpdate(self)
+        NotificationCenter.default.post(name: .basketModelDidUpdate, object: self)
     }
 
     public func clear() {
@@ -181,6 +190,7 @@ public class BasketModel {
             NSSound(named: "Basso")?.play()
         }
         delegate?.basketDidUpdate(self)
+        NotificationCenter.default.post(name: .basketModelDidUpdate, object: self)
     }
 
     public func copyFilesToClipboard() {

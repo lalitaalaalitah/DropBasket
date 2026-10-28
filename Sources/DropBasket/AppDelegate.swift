@@ -30,6 +30,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
         print("[\(Metadata.appName)] v\(Metadata.appVersion) running in background.")
         print("[\(Metadata.appName)] Shake cursor while dragging files to summon the basket.")
+        print("[\(Metadata.appName)] Look for the 🧺 icon in the macOS top menu bar.")
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
@@ -67,7 +68,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
         let success = EventTapManager.shared.start()
         if !success {
-            print("[\(Metadata.appName)] Failed to start event tap. Trying session tap fallback...")
+            print("[\(Metadata.appName)] Failed to start event tap. Please grant Accessibility permissions in System Settings.")
         }
     }
 }

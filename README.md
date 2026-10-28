@@ -19,7 +19,7 @@ When using tiling window managers like [AeroSpace](https://github.com/nikitabobk
 2. **Gently flick your wrist to shake your cursor.**
 3. DropBasket immediately appears **centered directly under your cursor**, so you can drop with **zero extra movement** simply by releasing the mouse button!
 4. By default, items drop as **Copy** (as macOS standard). Hold **`⌘` (Command)** while dropping to perform a **Move**!
-5. After dropping, see rich file metadata: name, extension, file kind, formatted size, modification date, directory, and operation badge (`[COPY]` or `[⌘ MOVE]`).
+5. After dropping, see rich file metadata: name, extension badge, file kind, formatted size, relative modification date, parent folder, and operation badge (`[COPY]` or `[⌘ MOVE]`).
 6. Switch to any AeroSpace workspace (e.g. `Alt+1` .. `Alt+9` or your custom keys) — **the basket stays pinned on top above everything across all workspaces**.
 7. Drag your files out into Finder, Terminal, VSCode, Slack, or any destination!
 
@@ -52,11 +52,18 @@ Styled with the official **Catppuccin Mocha** colorway:
   - Individual items display dynamic `[COPY]` or `[⌘ MOVE]` badges that can be clicked to toggle at any time.
 - **📋 Rich Metadata in Basket:**
   - High-res file icon and uppercase extension pill.
-  - File name (bold, legible).
+  - File name (bold, middle-truncated, legible).
   - Exact file kind (e.g. `Portable Document Format`, `PNG Image`, `Swift Source Code`, `Folder`).
   - Human-readable file size (e.g. `14.2 MB`).
-  - Relative modification date (e.g. `Today, 04:30`).
+  - Relative modification date (e.g. `Today, 4:30 PM`).
   - Parent directory location (e.g. `📁 in Downloads`).
+- **🍸 Top Menu Bar Hint & Status Item:**
+  - Clean template basket icon in macOS menu bar (`🧺`).
+  - Dynamic count badge hint (`🧺 3`) when files are held.
+  - One-click popup menu with Show/Hide basket, workspace indicator, clipboard copy, and settings.
+- **🛡️ Single-Instance Management:**
+  - Running `dropbasket` when already active instantly summons the floating basket near the cursor instead of spawning conflicting processes.
+  - Supports `dropbasket stop`, `dropbasket restart`, and `dropbasket status`.
 - **📦 Drag All or Individual Items:**
   - Drag individual files out to any destination.
   - Drag **all files at once** using the `📦 Drag All` button.
@@ -66,8 +73,6 @@ Styled with the official **Catppuccin Mocha** colorway:
 - **💻 Full Command-Line Interface (CLI):**
   - Control DropBasket from WezTerm, Alacritty, Kitty, or Terminal:
     `dropbasket add file.txt`, `dropbasket show`, `dropbasket list`, etc.
-- **🍸 Menu Bar Status Item:**
-  - Optional menu bar tray item with one-click actions, sensitivity configuration, and AeroSpace workspace status.
 
 ---
 
@@ -100,6 +105,9 @@ run = 'layout floating'
 # Display version and author metadata
 dropbasket --version
 
+# Summon floating basket or start background daemon
+dropbasket
+
 # Add files or folders from terminal into the floating basket
 dropbasket add ~/Downloads/document.pdf ~/Pictures/screenshot.png
 
@@ -110,11 +118,15 @@ dropbasket hide
 # List files currently in the basket
 dropbasket list
 
-# Check daemon status
+# Check daemon and AeroSpace workspace status
 dropbasket status
 
 # Clear all items from the basket
 dropbasket clear
+
+# Stop or restart the background daemon
+dropbasket stop
+dropbasket restart
 ```
 
 ---
