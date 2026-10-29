@@ -52,14 +52,27 @@ public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
 
         let refcon = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
+        // Prefer .cgSessionEventTap for user login session accessibility tools
         eventTap = CGEvent.tapCreate(
-            tap: .cghidEventTap,
+            tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: .listenOnly,
             eventsOfInterest: CGEventMask(mask),
             callback: dropBasketEventTapCallback,
             userInfo: refcon
         )
+
+        // Fallback to .cghidEventTap if session tap is unavailable
+        if eventTap == nil {
+            eventTap = CGEvent.tapCreate(
+                tap: .cghidEventTap,
+                place: .headInsertEventTap,
+                options: .listenOnly,
+                eventsOfInterest: CGEventMask(mask),
+                callback: dropBasketEventTapCallback,
+                userInfo: refcon
+            )
+        }
 
         guard let tap = eventTap else {
             print("[\(Metadata.appName)] Failed to create CGEvent tap. Please check Accessibility permissions.")

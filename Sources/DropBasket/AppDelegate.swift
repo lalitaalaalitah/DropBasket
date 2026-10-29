@@ -51,16 +51,8 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupEventTap() {
-        EventTapManager.shared.onShakeDetected = { point, isDragging in
-            if isDragging {
-                BasketPanel.shared.showNear(cursorPoint: point)
-            } else {
-                // Shaken with Finder selection
-                let sel = FinderHelper.shared.getSelectedURLs()
-                if !sel.isEmpty {
-                    BasketPanel.shared.showNear(cursorPoint: point)
-                }
-            }
+        EventTapManager.shared.onShakeDetected = { point, _ in
+            BasketPanel.shared.showNear(cursorPoint: point)
             MenuBarController.shared.rebuildMenu()
         }
 

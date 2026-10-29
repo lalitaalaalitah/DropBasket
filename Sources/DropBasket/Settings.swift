@@ -15,27 +15,35 @@ public enum ShakeSensitivity: String, CaseIterable, Sendable {
     case medium = "Medium"
     case high = "High"
 
-    var minStrokeDistance: CGFloat {
+    public var minStrokeDistance: CGFloat {
         switch self {
-        case .low: return 14.0
-        case .medium: return 8.0   // Fast & effortless
-        case .high: return 5.0    // Ultra sensitive
+        case .low: return 10.0
+        case .medium: return 6.5   // Fast & effortless
+        case .high: return 4.0    // Ultra sensitive
         }
     }
 
-    var minReversals: Int {
+    public var minReversals: Int {
         switch self {
-        case .low: return 3
-        case .medium: return 2   // Just 2 reversals (quick left-right flick!)
+        case .low: return 2
+        case .medium: return 2   // Just 2 reversals (quick flick-and-back)
         case .high: return 2
         }
     }
 
-    var timeWindow: TimeInterval {
+    public var minTotalPath: CGFloat {
         switch self {
-        case .low: return 0.70
-        case .medium: return 0.75
-        case .high: return 0.80
+        case .low: return 42.0
+        case .medium: return 26.0
+        case .high: return 16.0
+        }
+    }
+
+    public var timeWindow: TimeInterval {
+        switch self {
+        case .low: return 0.40
+        case .medium: return 0.45
+        case .high: return 0.50
         }
     }
 }

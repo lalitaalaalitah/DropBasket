@@ -59,19 +59,21 @@ public class BasketPanel: NSPanel {
         cancelAutoHideTimer()
         basketVC.refreshUI()
 
+        let currentMouse = NSEvent.mouseLocation
         let primaryScreenHeight = NSScreen.screens.first?.frame.height ?? 1080
         let cocoaPoint = NSPoint(x: cursorPoint.x, y: primaryScreenHeight - cursorPoint.y)
+        let activePoint = (currentMouse != .zero) ? currentMouse : cocoaPoint
 
         // Find active screen
-        let activeScreen = NSScreen.screens.first(where: { NSMouseInRect(cocoaPoint, $0.frame, false) }) ?? NSScreen.main ?? NSScreen.screens[0]
+        let activeScreen = NSScreen.screens.first(where: { NSMouseInRect(activePoint, $0.frame, false) }) ?? NSScreen.main ?? NSScreen.screens[0]
         let visibleFrame = activeScreen.visibleFrame
 
         let width: CGFloat = 400
         let height: CGFloat = 460
 
         // Center horizontally around the cursor, and position cursor directly inside the upper drop area
-        var targetX = cocoaPoint.x - (width / 2.0)
-        var targetY = cocoaPoint.y - height + 100.0
+        var targetX = activePoint.x - (width / 2.0)
+        var targetY = activePoint.y - height + 100.0
 
         // Clamp inside visible frame
         targetX = max(visibleFrame.minX + 12, min(targetX, visibleFrame.maxX - width - 12))
@@ -83,7 +85,7 @@ public class BasketPanel: NSPanel {
             alphaValue = 0.0
             orderFrontRegardless()
             NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.14
+                ctx.duration = 0.12
                 animator().alphaValue = 1.0
             }
         } else {

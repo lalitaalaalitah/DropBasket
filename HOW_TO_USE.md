@@ -31,7 +31,7 @@ Select files in Finder, Safari, or any app, and begin dragging them.
 
 ### Step 2: Gentle Wrist Shake
 - While holding the left mouse button, **gently flick your wrist back and forth**.
-- Thanks to the optimized sensitivity threshold (just 8px movement and 2 directional reversals), the slightest quick wiggle instantly triggers summon.
+- Thanks to the omnidirectional vector kinematics engine, any natural flick—horizontal, diagonal, vertical, or a slight wiggle—instantly triggers summon with zero diagonal blindness or sensor jitter stutter.
 - **Notice the positioning:** DropBasket appears **directly centered under your cursor**.
 
 ### Step 3: Zero-Movement Drop (Copy vs ⌘ Move)

@@ -45,9 +45,11 @@ Styled with the official **Catppuccin Mocha** colorway:
   - Automatically starts on login and remains persistent across your entire macOS session.
 - **🖼️ Native App Icon:**
   - Bundled with a custom high-resolution Retina `AppIcon.icns`, fully integrated with Finder, Dock, Spotlight, and LaunchServices.
-- **🖱️ Effortless Shake-to-Summon:**
-  - Highly sensitive: requires only 2 quick reversals (a single natural wrist flick of ~8 pixels).
-  - The window appears centered directly over your cursor — release the mouse button right there to drop without moving your arm across the screen.
+- **🖱️ Effortless Omnidirectional Shake-to-Summon:**
+  - **Kinematic Sliding-Window & Vector Turnaround Engine:** Replaces fragile axis-split detection with 2D vector kinematics. Works smoothly across horizontal, vertical, diagonal (45°), elliptical, and orbital wrist wiggles with zero diagonal blindness.
+  - **Sub-Pixel Noise Filtering:** Sub-pixel optical sensor tremor and trackpad micro-jitter (< 1.0 px) are automatically filtered without resetting accumulated strokes.
+  - **Zero-Latency Summoning:** Triggers immediately on a natural ~1-centimeter flick (just 2 quick reversals or 26px total path) in < 0.3s.
+  - **Centered Drop Target:** The window appears centered directly over your cursor — release the mouse button right there to drop without moving your arm across the screen.
 - **📌 Guaranteed Stays on Top Across AeroSpace Spaces:**
   - Configured with `level = .popUpMenu` and `hidesOnDeactivate = false`.
   - Conforms to `.canJoinAllSpaces`, `.stationary`, `.ignoresCycle`, and `.fullScreenAuxiliary`.

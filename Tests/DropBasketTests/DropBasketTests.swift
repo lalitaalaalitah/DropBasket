@@ -63,7 +63,7 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(delegate.endedDrags.count == 1)
     }
 
-    @Test func testQuickShakeTriggersEffortlessly() {
+    @Test func testQuickHorizontalShakeTriggersEffortlessly() {
         let detector = ShakeDetector()
         let delegate = MockShakeDelegate()
         detector.delegate = delegate
@@ -72,11 +72,11 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 
         detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
 
-        // Quick back-and-forth flick: 100 -> 120 -> 95 -> 120
-        let targets: [CGFloat] = [120, 95, 120]
+        // Quick back-and-forth flick: 100 -> 118 -> 96 -> 116
+        let targets: [CGFloat] = [118, 96, 116]
         var currentX: CGFloat = 100
         for target in targets {
-            let step: CGFloat = target > currentX ? 4 : -4
+            let step: CGFloat = target > currentX ? 3.5 : -3.5
             while (step > 0 && currentX < target) || (step < 0 && currentX > target) {
                 currentX += step
                 detector.handleMouseDragged(at: CGPoint(x: currentX, y: 100))
@@ -91,6 +91,71 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 
         #expect(!delegate.detectedShakes.isEmpty)
         #expect(delegate.detectedIsDragging.first == true)
+    }
+
+    @Test func testDiagonalShakeTriggersEffortlessly() {
+        let detector = ShakeDetector()
+        let delegate = MockShakeDelegate()
+        detector.delegate = delegate
+
+        AppSettings.shared.sensitivity = .medium
+
+        detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
+
+        // Diagonal flick at 45°: (100,100) -> (114,114) -> (96,96) -> (112,112)
+        let targets: [CGPoint] = [
+            CGPoint(x: 114, y: 114),
+            CGPoint(x: 96, y: 96),
+            CGPoint(x: 112, y: 112)
+        ]
+        var current = CGPoint(x: 100, y: 100)
+        for target in targets {
+            let stepX: CGFloat = target.x > current.x ? 3 : -3
+            let stepY: CGFloat = target.y > current.y ? 3 : -3
+            while (stepX > 0 && current.x < target.x) || (stepX < 0 && current.x > target.x) {
+                current.x += stepX
+                current.y += stepY
+                detector.handleMouseDragged(at: current)
+                if !delegate.detectedShakes.isEmpty {
+                    break
+                }
+            }
+            if !delegate.detectedShakes.isEmpty {
+                break
+            }
+        }
+
+        #expect(!delegate.detectedShakes.isEmpty)
+        #expect(delegate.detectedIsDragging.first == true)
+    }
+
+    @Test func testSubpixelNoiseDoesNotBreakShake() {
+        let detector = ShakeDetector()
+        let delegate = MockShakeDelegate()
+        detector.delegate = delegate
+
+        AppSettings.shared.sensitivity = .medium
+        detector.handleMouseDown(at: CGPoint(x: 200, y: 200))
+
+        // Interleave strokes with realistic subpixel jitter (< 1.0 px)
+        var x: CGFloat = 200
+        for _ in 0..<5 {
+            x += 3.5
+            detector.handleMouseDragged(at: CGPoint(x: x, y: 200))
+            // Jitter frame that should be filtered
+            detector.handleMouseDragged(at: CGPoint(x: x + 0.3, y: 200.2))
+        }
+        for _ in 0..<6 {
+            x -= 3.5
+            detector.handleMouseDragged(at: CGPoint(x: x, y: 200))
+            detector.handleMouseDragged(at: CGPoint(x: x - 0.2, y: 199.8))
+        }
+        for _ in 0..<5 {
+            x += 3.5
+            detector.handleMouseDragged(at: CGPoint(x: x, y: 200))
+        }
+
+        #expect(!delegate.detectedShakes.isEmpty)
     }
 }
 
