@@ -85,8 +85,12 @@ Styled with the official **Catppuccin Mocha** colorway:
 
 ## 🛠️ Installation
 
+### Option 1: Standard Makefile (Recommended for Native macOS)
+
 ```bash
 # Clone the repository and install:
+git clone https://github.com/lalitaalaalitah/DropBasket.git
+cd DropBasket
 make install
 ```
 
@@ -96,6 +100,33 @@ make install
 3. Registers the bundle with macOS LaunchServices.
 4. Installs the `dropbasket` CLI to `~/.local/bin/dropbasket`.
 5. Installs and starts the `LaunchAgent` background service (`~/Library/LaunchAgents/com.lalitaalaalitah.DropBasket.plist`).
+
+### Option 2: Nix & Nix Flakes (Nix-Darwin / Home Manager)
+
+```bash
+# Run directly without installing:
+nix run github:lalitaalaalitah/DropBasket
+
+# Install to your user profile:
+nix profile install github:lalitaalaalitah/DropBasket
+```
+
+#### Nix-Darwin Integration
+```nix
+# In your system flake.nix:
+inputs.dropbasket.url = "github:lalitaalaalitah/DropBasket";
+
+# In your darwin configuration modules:
+imports = [ inputs.dropbasket.darwinModules.default ];
+services.dropbasket.enable = true;
+```
+
+#### Home Manager Integration
+```nix
+# In your home-manager configuration modules:
+imports = [ inputs.dropbasket.homeModules.default ];
+services.dropbasket.enable = true;
+```
 
 ---
 

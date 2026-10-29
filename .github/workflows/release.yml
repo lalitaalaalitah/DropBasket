@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name to release (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Version & Tag
+        id: vars
+        run: |
+          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v$(git describe --tags --always 2>/dev/null || echo '1.0.0')"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building DropBasket release for ${TAG} (v${VERSION})"
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app 2>/dev/null || sudo xcode-select -s /Applications/Xcode.app 2>/dev/null || true
+
+      - name: Run Unit Tests
+        run: swift test
+
+      - name: Build Release App
+        run: |
+          swift build -c release --arch arm64 --arch x86_64 2>/dev/null || swift build -c release
+          ./scripts/build_app.sh
+
+      - name: Package Release Artifacts
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          ARCHIVE_NAME="DropBasket-${TAG}-macOS.zip"
+          
+          # Create zip containing DropBasket.app and dropbasket CLI
+          cd build
+          zip -r -y "${ARCHIVE_NAME}" DropBasket.app dropbasket
+          shasum -a 256 "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+          cat "${ARCHIVE_NAME}.sha256"
+          mv "${ARCHIVE_NAME}"* ../
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: DropBasket ${{ steps.vars.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            DropBasket-*.zip
+            DropBasket-*.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

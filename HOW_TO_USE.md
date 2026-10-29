@@ -19,6 +19,10 @@ DropBasket is designed to run automatically in the background as an interactive 
   ```bash
   dropbasket
   ```
+- **Nix Flake:**
+  ```bash
+  nix run github:lalitaalaalitah/DropBasket
+  ```
 
 If DropBasket is already running in the background, typing `dropbasket` will immediately bring the floating basket directly to your cursor!
 

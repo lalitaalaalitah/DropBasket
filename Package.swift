@@ -1,4 +1,4 @@
-// swift-tools-version: 6.4
+// swift-tools-version: 6.0
 // Author: lalitaalaalitah
 // Website: https://www.lalitaalaalitah.com
 // GitHub Profile: https://github.com/lalitaalaalitah
