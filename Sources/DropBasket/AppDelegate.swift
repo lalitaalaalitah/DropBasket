@@ -13,6 +13,10 @@ import ApplicationServices
 @MainActor
 public class AppDelegate: NSObject, NSApplicationDelegate {
     public func applicationDidFinishLaunching(_ notification: Notification) {
+        // Prevent AppKit from automatically terminating when all windows are closed/hidden
+        ProcessInfo.processInfo.disableAutomaticTermination("DropBasket runs continuously as a background service")
+        ProcessInfo.processInfo.disableSuddenTermination()
+
         // Set accessory policy so DropBasket doesn't clutter the macOS Dock
         NSApp.setActivationPolicy(.accessory)
 
@@ -41,7 +45,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     private func checkAccessibilityPermissions() {
         if !AXIsProcessTrusted() {
             print("[\(Metadata.appName)] Warning: Accessibility permission not granted yet.")
-            let options = ["prompt": true] as CFDictionary
+            let options = ["AXTrustedCheckOptionPrompt": kCFBooleanTrue as Any] as CFDictionary
             _ = AXIsProcessTrustedWithOptions(options)
         }
     }

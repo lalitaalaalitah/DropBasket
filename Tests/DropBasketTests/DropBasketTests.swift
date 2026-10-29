@@ -179,3 +179,16 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         try? FileManager.default.removeItem(at: sample)
     }
 }
+
+@Suite struct ServiceManagerTests {
+    @Test func testServiceManagerPlistGeneration() {
+        let fakePath = "/Applications/DropBasket.app/Contents/MacOS/DropBasket"
+        let plist = ServiceManager.generatePlistContent(binaryPath: fakePath)
+
+        #expect(plist.contains("<string>com.lalitaalaalitah.DropBasket</string>"))
+        #expect(plist.contains("<string>\(fakePath)</string>"))
+        #expect(plist.contains("<key>RunAtLoad</key>"))
+        #expect(plist.contains("<key>KeepAlive</key>"))
+        #expect(ServiceManager.plistURL.lastPathComponent == "com.lalitaalaalitah.DropBasket.plist")
+    }
+}

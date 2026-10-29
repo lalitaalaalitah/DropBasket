@@ -39,6 +39,12 @@ Styled with the official **Catppuccin Mocha** colorway:
 
 ## ✨ Key Features
 
+- **🚀 System LaunchAgent Service:**
+  - Runs in the background independently as a native macOS `LaunchAgent` service (`~/Library/LaunchAgents/com.lalitaalaalitah.DropBasket.plist`).
+  - No need to keep a terminal window (WezTerm, Alacritty, Kitty) open or run with `&`.
+  - Automatically starts on login and remains persistent across your entire macOS session.
+- **🖼️ Native App Icon:**
+  - Bundled with a custom high-resolution Retina `AppIcon.icns`, fully integrated with Finder, Dock, Spotlight, and LaunchServices.
 - **🖱️ Effortless Shake-to-Summon:**
   - Highly sensitive: requires only 2 quick reversals (a single natural wrist flick of ~8 pixels).
   - The window appears centered directly over your cursor — release the mouse button right there to drop without moving your arm across the screen.
@@ -71,19 +77,23 @@ Styled with the official **Catppuccin Mocha** colorway:
   - Highlight any item and press `Space` (or click `👁`) for native macOS Quick Look previews.
   - "Reveal in Finder" (`↗`) button.
 - **💻 Full Command-Line Interface (CLI):**
-  - Control DropBasket from WezTerm, Alacritty, Kitty, or Terminal:
-    `dropbasket add file.txt`, `dropbasket show`, `dropbasket list`, etc.
+  - Control DropBasket from any shell: `dropbasket add file.txt`, `dropbasket show`, `dropbasket service status`, etc.
 
 ---
 
 ## 🛠️ Installation
 
 ```bash
-# Clone the repository and run:
+# Clone the repository and install:
 make install
 ```
 
-This compiles the native release binary with Swift 6, packages `DropBasket.app`, installs it to `~/Applications/`, and links the `dropbasket` CLI to `~/.local/bin/`.
+`make install` automatically:
+1. Compiles the native release binary with Swift 6.
+2. Packages `DropBasket.app` with icons and Info.plist into `~/Applications/DropBasket.app`.
+3. Registers the bundle with macOS LaunchServices.
+4. Installs the `dropbasket` CLI to `~/.local/bin/dropbasket`.
+5. Installs and starts the `LaunchAgent` background service (`~/Library/LaunchAgents/com.lalitaalaalitah.DropBasket.plist`).
 
 ---
 
@@ -105,7 +115,7 @@ run = 'layout floating'
 # Display version and author metadata
 dropbasket --version
 
-# Summon floating basket or start background daemon
+# Summon floating basket near cursor (or start service if stopped)
 dropbasket
 
 # Add files or folders from terminal into the floating basket
@@ -127,6 +137,14 @@ dropbasket clear
 # Stop or restart the background daemon
 dropbasket stop
 dropbasket restart
+
+# Background Service Management (LaunchAgent):
+dropbasket service status      # Check if background service is running
+dropbasket service start       # Start background service
+dropbasket service stop        # Stop background service
+dropbasket service restart     # Restart background service
+dropbasket service install     # Reinstall LaunchAgent service
+dropbasket service uninstall   # Remove LaunchAgent service
 ```
 
 ---
@@ -135,7 +153,7 @@ dropbasket restart
 
 DropBasket requires macOS **Accessibility** permission in order to monitor mouse drag movements globally:
 1. On first launch, macOS will prompt to grant Accessibility permissions in **System Settings > Privacy & Security > Accessibility**.
-2. Enable `DropBasket` (or your terminal emulator if running from CLI).
+2. Enable `DropBasket` (and your terminal emulator if running CLI directly).
 
 ---
 

@@ -41,6 +41,44 @@ public struct CLI {
                 exit(0)
             } else {
                 print("[\(Metadata.appName)] DropBasket is not running.")
+                let serviceStat = ServiceManager.status()
+                if serviceStat.installed {
+                    print("  LaunchAgent is installed. Run 'dropbasket service start' to start it.")
+                }
+                exit(1)
+            }
+
+        case "service":
+            let sub = args.dropFirst().first ?? "status"
+            switch sub {
+            case "install":
+                let res = ServiceManager.install()
+                print(res.message)
+                exit(res.success ? 0 : 1)
+            case "uninstall", "remove":
+                let res = ServiceManager.uninstall()
+                print(res.message)
+                exit(res.success ? 0 : 1)
+            case "start":
+                let res = ServiceManager.start()
+                print(res.message)
+                exit(res.success ? 0 : 1)
+            case "stop":
+                let res = ServiceManager.stop()
+                print(res.message)
+                exit(res.success ? 0 : 1)
+            case "restart":
+                _ = ServiceManager.stop()
+                Thread.sleep(forTimeInterval: 0.5)
+                let res = ServiceManager.start()
+                print(res.message)
+                exit(res.success ? 0 : 1)
+            case "status":
+                let stat = ServiceManager.status()
+                print(stat.message)
+                exit(stat.running ? 0 : 1)
+            default:
+                print("Usage: dropbasket service [install | uninstall | start | stop | restart | status]")
                 exit(1)
             }
 
@@ -75,7 +113,11 @@ public struct CLI {
                 print("Usage: dropbasket add <file1> [file2...]")
                 exit(1)
             }
-            let cmd = "ADD " + paths.joined(separator: " ")
+            let absolutePaths = paths.map { (p: String) -> String in
+                let expanded = (p as NSString).expandingTildeInPath
+                return URL(fileURLWithPath: expanded).path
+            }
+            let cmd = "ADD " + absolutePaths.joined(separator: " ")
             let result = IPCService.shared.sendCommand(cmd)
             print(result.response.trimmingCharacters(in: .whitespacesAndNewlines))
             exit(result.success ? 0 : 1)
@@ -97,14 +139,23 @@ public struct CLI {
             startGUIApp()
 
         case "daemon", "--daemon", "start", "--start":
-            handleStartOrSummon()
+            if FileManager.default.fileExists(atPath: ServiceManager.plistURL.path) {
+                let res = ServiceManager.start()
+                print(res.message)
+                exit(res.success ? 0 : 1)
+            } else {
+                handleStartOrSummon()
+            }
 
         case _ where first.hasPrefix("-psn"):
             // macOS LaunchServices Process Serial Number argument (e.g. -psn_0_123456)
-            startGUIApp()
+            handleStartOrSummon()
 
         default:
-            let maybeFiles = args.filter { FileManager.default.fileExists(atPath: ($0 as NSString).expandingTildeInPath) }
+            let maybeFiles = args.map { (p: String) -> String in
+                let expanded = (p as NSString).expandingTildeInPath
+                return URL(fileURLWithPath: expanded).path
+            }.filter { FileManager.default.fileExists(atPath: $0) }
             if !maybeFiles.isEmpty {
                 let cmd = "ADD " + maybeFiles.joined(separator: " ")
                 let result = IPCService.shared.sendCommand(cmd)
@@ -153,6 +204,14 @@ public struct CLI {
           stop / quit           Stop the running background daemon
           restart               Restart the DropBasket daemon
           daemon / start        Start DropBasket as background daemon
+
+        SERVICE MANAGEMENT (LaunchAgent):
+          service install       Install and start DropBasket as a permanent background service
+          service uninstall     Stop and remove the background service
+          service start         Start the installed LaunchAgent service
+          service stop          Stop the running LaunchAgent service
+          service restart       Restart the background service
+          service status        Inspect LaunchAgent service and process status
 
         OPTIONS:
           -v, --version         Show author metadata and version (__version__ = "\(CLI.__version__)")

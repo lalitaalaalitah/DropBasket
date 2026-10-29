@@ -12,15 +12,15 @@
 
 ### 1. Launching DropBasket
 
-Launch DropBasket using either:
+DropBasket is designed to run automatically in the background as an interactive macOS **LaunchAgent background service**:
+- **Automatic Service:** Installed to `~/Library/LaunchAgents/com.lalitaalaalitah.DropBasket.plist`. It starts automatically when you log in and keeps running without requiring any terminal to stay open.
 - **Application:** Launch `DropBasket` from `~/Applications` or Spotlight.
 - **Terminal:**
   ```bash
   dropbasket
   ```
 
-DropBasket runs in the background as an accessory panel (`LSUIElement`) with a 🧺 menu bar icon.
-If DropBasket is already running, typing `dropbasket` will automatically bring the floating basket to your cursor!
+If DropBasket is already running in the background, typing `dropbasket` will immediately bring the floating basket directly to your cursor!
 
 ---
 
@@ -71,6 +71,28 @@ The macOS menu bar displays a native 🧺 basket icon:
 
 ---
 
+## 🛠️ Background Service Management (LaunchAgent)
+
+DropBasket includes complete service lifecycle management so you never need to leave a terminal open:
+
+```bash
+# Check service and process status:
+dropbasket service status
+
+# Start or stop the service:
+dropbasket service start
+dropbasket service stop
+
+# Restart the service:
+dropbasket service restart
+
+# Reinstall or remove the LaunchAgent plist:
+dropbasket service install
+dropbasket service uninstall
+```
+
+---
+
 ## 🎨 Catppuccin Mocha Visual Indicators
 
 * **Teal (`#94e2d5`):** Standard Copy operations.
@@ -117,7 +139,7 @@ dropbasket hide
 # Clear basket:
 dropbasket clear
 
-# Stop or restart:
+# Stop or restart daemon:
 dropbasket stop
 dropbasket restart
 ```
