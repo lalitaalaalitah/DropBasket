@@ -111,7 +111,7 @@
 
             launchd.user.agents.dropbasket = {
               serviceConfig = {
-                ProgramArguments = [ "${cfg.package}/bin/dropbasket" "run" ];
+                ProgramArguments = [ "${cfg.package}/Applications/DropBasket.app/Contents/MacOS/DropBasket" ];
                 KeepAlive = true;
                 RunAtLoad = true;
                 ProcessType = "Interactive";
@@ -142,7 +142,7 @@
             launchd.agents.dropbasket = {
               enable = true;
               config = {
-                ProgramArguments = [ "${cfg.package}/bin/dropbasket" "run" ];
+                ProgramArguments = [ "${cfg.package}/Applications/DropBasket.app/Contents/MacOS/DropBasket" ];
                 KeepAlive = true;
                 RunAtLoad = true;
                 ProcessType = "Interactive";
