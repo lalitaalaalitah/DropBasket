@@ -45,7 +45,7 @@ public final class ShakeDetector: @unchecked Sendable {
     private var currentStroke: CGPoint = .zero
 
     private var lastTriggerTime: TimeInterval = 0
-    private let cooldown: TimeInterval = 0.35
+    private let cooldown: TimeInterval = 0.40
     public private(set) var isDragging: Bool = false
 
     public init() {}
@@ -71,8 +71,8 @@ public final class ShakeDetector: @unchecked Sendable {
     }
 
     public func handleMouseMoved(at point: CGPoint) {
-        guard AppSettings.shared.triggerOnFinderSelection else { return }
-        processPoint(point, isDragging: false)
+        // DropBasket strictly requires holding mouse down (dragging).
+        // Free cursor movement never triggers the basket.
     }
 
     public func recordTrigger() {
@@ -102,7 +102,7 @@ public final class ShakeDetector: @unchecked Sendable {
         let dy = p.y - prev.y
         let stepDist = hypot(dx, dy)
 
-        // Ignore sub-pixel noise and hardware jitter (< 1.0 px)
+        // Ignore micro-sensor noise (< 1.0 px)
         if stepDist < 1.0 {
             return
         }
@@ -123,10 +123,13 @@ public final class ShakeDetector: @unchecked Sendable {
         if currentStrokeLen < 0.5 {
             currentStroke = CGPoint(x: dx, y: dy)
         } else {
-            // Dot product between accumulated stroke and new movement step
+            // Normalized cosine of angle between accumulated stroke and new step
             let dot = (currentStroke.x * dx) + (currentStroke.y * dy)
-            if dot < 0 {
-                // Movement reversed direction (> 90° turn) relative to current stroke
+            let cosAngle = dot / (currentStrokeLen * stepDist)
+
+            // A reversal occurs when the direction changes sharply (angle > 115°, cos < -0.42).
+            // Gentle curves, L-corners, and slight hand wobbles (cos > -0.42) do NOT count as reversals.
+            if cosAngle < -0.42 {
                 if currentStrokeLen >= minStroke {
                     reversals.append(StrokeReversal(time: now, vertex: prev, strokeLength: currentStrokeLen))
                 }
@@ -138,13 +141,13 @@ public final class ShakeDetector: @unchecked Sendable {
         }
 
         // Trigger evaluation:
-        // When enough reversals occur within the time window:
+        // When enough qualifying deliberate reversals occur within the time window:
         if reversals.count >= minReversals {
-            // Total distance of the reversal strokes + current stroke
+            // Total distance across qualifying reversal strokes + current stroke
             let reversalPath = reversals.reduce(0.0) { $0 + $1.strokeLength }
             let totalShakePath = reversalPath + hypot(currentStroke.x, currentStroke.y)
 
-            // Ensure the shake is localized (not dragging across the screen)
+            // Ensure the shake is localized around the cursor
             var minX = p.x, maxX = p.x, minY = p.y, maxY = p.y
             for rev in reversals {
                 minX = min(minX, rev.vertex.x)
@@ -154,7 +157,7 @@ public final class ShakeDetector: @unchecked Sendable {
             }
             let bboxDiag = hypot(maxX - minX, maxY - minY)
 
-            if totalShakePath >= minTotalPath && bboxDiag <= 120.0 {
+            if totalShakePath >= minTotalPath && bboxDiag <= 140.0 {
                 lastTriggerTime = now
                 resetStrokes()
                 delegate?.didDetectShake(at: p, isDragging: isDragging)

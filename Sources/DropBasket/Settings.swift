@@ -17,33 +17,33 @@ public enum ShakeSensitivity: String, CaseIterable, Sendable {
 
     public var minStrokeDistance: CGFloat {
         switch self {
-        case .low: return 8.0
-        case .medium: return 5.0   // Fast, effortless & natural
-        case .high: return 3.5    // Ultra sensitive
+        case .low: return 20.0
+        case .medium: return 14.0   // Deliberate flick stroke (rejects 3-6px natural hand wobble)
+        case .high: return 9.0     // Responsive
         }
     }
 
     public var minReversals: Int {
         switch self {
         case .low: return 2
-        case .medium: return 2   // Just 2 reversals (quick flick-and-back)
+        case .medium: return 2   // 2 sharp reversals (flick left -> flick right)
         case .high: return 2
         }
     }
 
     public var minTotalPath: CGFloat {
         switch self {
-        case .low: return 28.0
-        case .medium: return 18.0  // Rapidly reached by a natural flick
-        case .high: return 12.0
+        case .low: return 60.0
+        case .medium: return 42.0  // Easily reached by 2 intentional 15-20px flicks
+        case .high: return 28.0
         }
     }
 
     public var timeWindow: TimeInterval {
         switch self {
-        case .low: return 0.55
-        case .medium: return 0.65  // Relaxed window for natural human shaking
-        case .high: return 0.75
+        case .low: return 0.50
+        case .medium: return 0.60  // Window for intentional shake gesture
+        case .high: return 0.70
         }
     }
 }

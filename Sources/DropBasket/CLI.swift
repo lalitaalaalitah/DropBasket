@@ -11,7 +11,7 @@ import Cocoa
 import Foundation
 
 public struct CLI {
-    public static let __version__ = "1.2.0"
+    public static let __version__ = "1.3.0"
 
     @MainActor
     public static func run(arguments: [String]) {

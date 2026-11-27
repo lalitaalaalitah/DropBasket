@@ -7,7 +7,7 @@
 # GitHub Profile: https://github.com/lalitaalaalitah
 #
 
-__version__="1.2.0"
+__version__="1.3.0"
 
 if [[ "$1" == "--version" || "$1" == "-v" ]]; then
     echo "================================================================================"

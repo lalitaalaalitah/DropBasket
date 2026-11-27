@@ -57,13 +57,9 @@ public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
     public func start() -> Bool {
         stop()
 
-        var mask = (1 << CGEventType.leftMouseDown.rawValue) |
+        let mask = (1 << CGEventType.leftMouseDown.rawValue) |
                    (1 << CGEventType.leftMouseDragged.rawValue) |
                    (1 << CGEventType.leftMouseUp.rawValue)
-
-        if AppSettings.shared.triggerOnFinderSelection {
-            mask |= (1 << CGEventType.mouseMoved.rawValue)
-        }
 
         let refcon = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
@@ -133,8 +129,6 @@ public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
         case .leftMouseUp:
             shakeDetector.handleMouseUp(at: loc)
             mouseDownDragChangeCount = NSPasteboard(name: .drag).changeCount
-        case .mouseMoved:
-            shakeDetector.handleMouseMoved(at: loc)
         default:
             break
         }
@@ -186,26 +180,17 @@ public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
     // MARK: - ShakeDetectorDelegate
 
     public func didDetectShake(at point: CGPoint, isDragging: Bool) {
-        if isDragging {
-            // Must be an active file drag session! Rejects text selections and text drags.
-            guard self.isSystemFileDragInProgress() else {
-                return
-            }
-            self.shakeDetector.recordTrigger()
-            DispatchQueue.main.async { [weak self] in
-                self?.onShakeDetected?(point, true)
-            }
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                if FinderHelper.shared.isFinderFrontmost {
-                    let sel = FinderHelper.shared.getSelectedURLs()
-                    if !sel.isEmpty {
-                        self.shakeDetector.recordTrigger()
-                        self.onShakeDetected?(point, false)
-                    }
-                }
-            }
+        // Strictly require holding left mouse button down while dragging
+        guard isDragging else { return }
+
+        // Strictly require an active file drag session! Rejects text selections, window movement, sliders.
+        guard self.isSystemFileDragInProgress() else {
+            return
+        }
+
+        self.shakeDetector.recordTrigger()
+        DispatchQueue.main.async { [weak self] in
+            self?.onShakeDetected?(point, true)
         }
     }
 

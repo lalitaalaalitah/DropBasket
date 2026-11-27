@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-27
+
+### Fixed
+- **Eliminated False Summons on Free Mouse Movement**: Removed `mouseMoved` tracking and disabled bare cursor movement summoning (`triggerOnFinderSelection`). DropBasket strictly and exclusively responds when a user is actively holding down the mouse button and dragging files.
+- **Accidental Drag Trigger Prevention**: Calibrated stroke amplitude threshold to `minStrokeDistance = 14.0px` and `minTotalPath = 42.0px`, ensuring natural 3–6px hand wobbles during ordinary file drags or window movements are never mistaken for intentional shakes.
+- **Sharp Reversal Angle Filtering**: Enforced acute vector turnaround verification (`cosAngle < -0.42`, angle > 115°), ensuring gentle curves, L-turns, and directional adjustments do not register as reversals.
+- **Strict Drag Session Enforcement**: Verified that `isDragging` and `isSystemFileDragInProgress()` are required prior to any panel summon, completely preventing spurious popups during text selection, window moving, or slider adjustments.
+
 ## [1.2.0] - 2026-11-27
 
 ### Fixed

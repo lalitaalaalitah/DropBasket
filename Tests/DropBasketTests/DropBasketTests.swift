@@ -33,9 +33,9 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(Metadata.author == "lalitaalaalitah")
         #expect(Metadata.website == "https://www.lalitaalaalitah.com")
         #expect(Metadata.github == "https://github.com/lalitaalaalitah")
-        #expect(Metadata.appVersion == "1.2.0")
+        #expect(Metadata.appVersion == "1.3.0")
         #expect(Metadata.bundleIdentifier == "com.lalitaalaalitah.DropBasket")
-        #expect(CLI.__version__ == "1.2.0")
+        #expect(CLI.__version__ == "1.3.0")
     }
 
     @Test func testCatppuccinMochaPalette() {
@@ -72,8 +72,8 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 
         detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
 
-        // Quick back-and-forth flick: 100 -> 118 -> 96 -> 116
-        let targets: [CGFloat] = [118, 96, 116]
+        // Deliberate back-and-forth flick: 100 -> 122 -> 96 -> 120
+        let targets: [CGFloat] = [122, 96, 120]
         var currentX: CGFloat = 100
         for target in targets {
             let step: CGFloat = target > currentX ? 3.5 : -3.5
@@ -102,11 +102,11 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
 
         detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
 
-        // Diagonal flick at 45°: (100,100) -> (114,114) -> (96,96) -> (112,112)
+        // Diagonal flick at 45°: (100,100) -> (118,118) -> (96,96) -> (118,118)
         let targets: [CGPoint] = [
-            CGPoint(x: 114, y: 114),
+            CGPoint(x: 118, y: 118),
             CGPoint(x: 96, y: 96),
-            CGPoint(x: 112, y: 112)
+            CGPoint(x: 118, y: 118)
         ]
         var current = CGPoint(x: 100, y: 100)
         for target in targets {
@@ -137,20 +137,19 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         AppSettings.shared.sensitivity = .medium
         detector.handleMouseDown(at: CGPoint(x: 200, y: 200))
 
-        // Interleave strokes with realistic subpixel jitter (< 1.0 px)
+        // Interleave deliberate strokes with realistic subpixel jitter (< 1.0 px)
         var x: CGFloat = 200
-        for _ in 0..<5 {
+        for _ in 0..<7 {
             x += 3.5
             detector.handleMouseDragged(at: CGPoint(x: x, y: 200))
-            // Jitter frame that should be filtered
             detector.handleMouseDragged(at: CGPoint(x: x + 0.3, y: 200.2))
         }
-        for _ in 0..<6 {
+        for _ in 0..<8 {
             x -= 3.5
             detector.handleMouseDragged(at: CGPoint(x: x, y: 200))
             detector.handleMouseDragged(at: CGPoint(x: x - 0.2, y: 199.8))
         }
-        for _ in 0..<5 {
+        for _ in 0..<7 {
             x += 3.5
             detector.handleMouseDragged(at: CGPoint(x: x, y: 200))
         }
@@ -174,16 +173,16 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         // At this point, no shake should have triggered
         #expect(delegate.detectedShakes.isEmpty)
 
-        // Immediately perform a quick 2-stroke flick: 600 -> 580 -> 600
+        // Immediately perform a quick 2-stroke flick: 600 -> 575 -> 600
         var currentX: CGFloat = 600
-        // Flick left
-        for _ in 0..<6 {
-            currentX -= 3.5
+        // Flick left (25px)
+        for _ in 0..<7 {
+            currentX -= 3.6
             detector.handleMouseDragged(at: CGPoint(x: currentX, y: 100))
         }
-        // Flick right
-        for _ in 0..<6 {
-            currentX += 3.5
+        // Flick right (25px)
+        for _ in 0..<7 {
+            currentX += 3.6
             detector.handleMouseDragged(at: CGPoint(x: currentX, y: 100))
             if !delegate.detectedShakes.isEmpty {
                 break
@@ -193,6 +192,47 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         // Must trigger immediately without waiting for past drag history to expire
         #expect(!delegate.detectedShakes.isEmpty)
         #expect(delegate.detectedIsDragging.first == true)
+    }
+
+    @Test func testNormalHandWobbleDuringDragDoesNotTrigger() {
+        let detector = ShakeDetector()
+        let delegate = MockShakeDelegate()
+        detector.delegate = delegate
+
+        AppSettings.shared.sensitivity = .medium
+        detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
+
+        // Simulate natural drag across the screen with 3-5px hand wobble
+        var current = CGPoint(x: 100, y: 100)
+        for i in 0..<30 {
+            // General diagonal movement with small 3-4px wobble
+            let wobble = (i % 2 == 0) ? CGFloat(4.0) : CGFloat(-4.0)
+            current.x += 10.0
+            current.y += 10.0 + wobble
+            detector.handleMouseDragged(at: current)
+        }
+        detector.handleMouseUp(at: current)
+
+        // Normal drag with minor wobble must NEVER trigger the basket
+        #expect(delegate.detectedShakes.isEmpty)
+    }
+
+    @Test func testMouseMovedWithoutDragNeverTriggers() {
+        let detector = ShakeDetector()
+        let delegate = MockShakeDelegate()
+        detector.delegate = delegate
+
+        // Shaking motion while mouse button is NOT down (free cursor movement)
+        var x: CGFloat = 300
+        for _ in 0..<10 {
+            x += 20.0
+            detector.handleMouseMoved(at: CGPoint(x: x, y: 300))
+            x -= 20.0
+            detector.handleMouseMoved(at: CGPoint(x: x, y: 300))
+        }
+
+        // Free cursor movement must NEVER trigger the basket
+        #expect(delegate.detectedShakes.isEmpty)
     }
 }
 
