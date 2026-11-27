@@ -28,24 +28,15 @@ public struct MovementSample: Sendable {
 public final class ShakeDetector: @unchecked Sendable {
     public weak var delegate: ShakeDetectorDelegate?
 
-    public struct StrokeReversal: Sendable {
-        public let time: TimeInterval
-        public let vertex: CGPoint
-        public let strokeLength: CGFloat
-
-        public init(time: TimeInterval, vertex: CGPoint, strokeLength: CGFloat) {
-            self.time = time
-            self.vertex = vertex
-            self.strokeLength = strokeLength
-        }
-    }
-
-    private var reversals: [StrokeReversal] = []
+    private var samples: [MovementSample] = []
     private var lastPoint: CGPoint?
+
+    // Omnidirectional vector stroke accumulation
     private var currentStroke: CGPoint = .zero
+    private var strokeReversalTimes: [TimeInterval] = []
 
     private var lastTriggerTime: TimeInterval = 0
-    private let cooldown: TimeInterval = 0.40
+    private let cooldown: TimeInterval = 0.55
     public private(set) var isDragging: Bool = false
 
     public init() {}
@@ -71,19 +62,15 @@ public final class ShakeDetector: @unchecked Sendable {
     }
 
     public func handleMouseMoved(at point: CGPoint) {
-        // DropBasket strictly requires holding mouse down (dragging).
-        // Free cursor movement never triggers the basket.
+        guard AppSettings.shared.triggerOnFinderSelection else { return }
+        processPoint(point, isDragging: false)
     }
 
-    public func recordTrigger() {
-        lastTriggerTime = Date().timeIntervalSinceReferenceDate
-        resetStrokes()
-    }
-
-    public func resetStrokes() {
+    private func resetStrokes() {
         lastPoint = nil
         currentStroke = .zero
-        reversals.removeAll()
+        strokeReversalTimes.removeAll()
+        samples.removeAll()
     }
 
     private func processPoint(_ p: CGPoint, isDragging: Bool) {
@@ -94,6 +81,7 @@ public final class ShakeDetector: @unchecked Sendable {
 
         guard let prev = lastPoint else {
             lastPoint = p
+            samples.append(MovementSample(point: p, timestamp: now))
             return
         }
         lastPoint = p
@@ -102,10 +90,12 @@ public final class ShakeDetector: @unchecked Sendable {
         let dy = p.y - prev.y
         let stepDist = hypot(dx, dy)
 
-        // Ignore micro-sensor noise (< 1.0 px)
+        // Ignore sub-pixel noise and hardware jitter (< 1.0 px)
         if stepDist < 1.0 {
             return
         }
+
+        samples.append(MovementSample(point: p, timestamp: now))
 
         let sensitivity = AppSettings.shared.sensitivity
         let timeWindow = sensitivity.timeWindow
@@ -113,9 +103,10 @@ public final class ShakeDetector: @unchecked Sendable {
         let minReversals = sensitivity.minReversals
         let minTotalPath = sensitivity.minTotalPath
 
-        // Purge reversals older than the rolling time window
+        // Purge samples and reversals older than the rolling time window
         let cutoff = now - timeWindow
-        reversals.removeAll { $0.time < cutoff }
+        samples.removeAll { $0.timestamp < cutoff }
+        strokeReversalTimes.removeAll { $0 < cutoff }
 
         // Vector turnaround analysis
         let currentStrokeLen = hypot(currentStroke.x, currentStroke.y)
@@ -123,46 +114,63 @@ public final class ShakeDetector: @unchecked Sendable {
         if currentStrokeLen < 0.5 {
             currentStroke = CGPoint(x: dx, y: dy)
         } else {
-            // Normalized cosine of angle between accumulated stroke and new step
+            // Dot product between current stroke vector and new movement vector
             let dot = (currentStroke.x * dx) + (currentStroke.y * dy)
-            let cosAngle = dot / (currentStrokeLen * stepDist)
-
-            // A reversal occurs when the direction changes sharply (angle > 115°, cos < -0.42).
-            // Gentle curves, L-corners, and slight hand wobbles (cos > -0.42) do NOT count as reversals.
-            if cosAngle < -0.42 {
+            if dot < 0 {
+                // Movement reversed direction relative to current stroke
                 if currentStrokeLen >= minStroke {
-                    reversals.append(StrokeReversal(time: now, vertex: prev, strokeLength: currentStrokeLen))
+                    strokeReversalTimes.append(now)
                 }
                 currentStroke = CGPoint(x: dx, y: dy)
             } else {
+                // Movement continues in the general stroke direction
                 currentStroke.x += dx
                 currentStroke.y += dy
             }
         }
 
-        // Trigger evaluation:
-        // When enough qualifying deliberate reversals occur within the time window:
-        if reversals.count >= minReversals {
-            // Total distance across qualifying reversal strokes + current stroke
-            let reversalPath = reversals.reduce(0.0) { $0 + $1.strokeLength }
-            let totalShakePath = reversalPath + hypot(currentStroke.x, currentStroke.y)
+        guard samples.count >= 3 else { return }
 
-            // Ensure the shake is localized around the cursor
-            var minX = p.x, maxX = p.x, minY = p.y, maxY = p.y
-            for rev in reversals {
-                minX = min(minX, rev.vertex.x)
-                maxX = max(maxX, rev.vertex.x)
-                minY = min(minY, rev.vertex.y)
-                maxY = max(maxY, rev.vertex.y)
-            }
-            let bboxDiag = hypot(maxX - minX, maxY - minY)
+        // Compute sliding window kinematics
+        var totalPath: CGFloat = 0
+        var minX = samples[0].point.x
+        var maxX = samples[0].point.x
+        var minY = samples[0].point.y
+        var maxY = samples[0].point.y
 
-            if totalShakePath >= minTotalPath && bboxDiag <= 140.0 {
-                lastTriggerTime = now
-                resetStrokes()
-                delegate?.didDetectShake(at: p, isDragging: isDragging)
-                return
-            }
+        for i in 1..<samples.count {
+            let p1 = samples[i - 1].point
+            let p2 = samples[i].point
+            totalPath += hypot(p2.x - p1.x, p2.y - p1.y)
+
+            if p2.x < minX { minX = p2.x }
+            if p2.x > maxX { maxX = p2.x }
+            if p2.y < minY { minY = p2.y }
+            if p2.y > maxY { maxY = p2.y }
+        }
+
+        let firstPt = samples.first!.point
+        let lastPt = samples.last!.point
+        let netDisplacement = hypot(lastPt.x - firstPt.x, lastPt.y - firstPt.y)
+        let bboxDiag = hypot(maxX - minX, maxY - minY)
+
+        let dispRatio = totalPath > 0 ? (netDisplacement / totalPath) : 1.0
+
+        // Trigger condition 1: Oscillating reversals (wiggling or flicking back and forth)
+        let conditionReversals = (strokeReversalTimes.count >= minReversals) &&
+                                 (totalPath >= minTotalPath) &&
+                                 (dispRatio <= 0.70)
+
+        // Trigger condition 2: Kinematic wiggle / tight orbital wiggles / rapid loops
+        let conditionKinematic = (totalPath >= minTotalPath * 1.25) &&
+                                 (dispRatio <= 0.45) &&
+                                 (strokeReversalTimes.count >= 1) &&
+                                 (bboxDiag <= 80.0)
+
+        if conditionReversals || conditionKinematic {
+            lastTriggerTime = now
+            resetStrokes()
+            delegate?.didDetectShake(at: p, isDragging: isDragging)
         }
     }
 }

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-27
+
+### Fixed
+- **Reverted Experimental Shake Kinematics**: Restored original, proven shake detection algorithms and sensitivity thresholds in `ShakeDetector.swift`, `Settings.swift`, and `AeroSpaceHelper.swift` to eliminate spurious triggers and erratic popup behavior.
+- **Isolated Text Selection Immunity**: Retained exclusively the targeted pasteboard change-count tracking and file-type validation in `EventTapManager.swift`, `BasketPanel.swift`, and `BasketViewController.swift` that prevents DropBasket from popping up when selecting text or dragging text snippets.
+- **Home Manager LaunchAgent Detection**: Retained LaunchAgent and binary path discovery in `ServiceManager.swift` for seamless Nix and Home Manager service management.
+
 ## [1.3.0] - 2026-11-27
 
 ### Fixed

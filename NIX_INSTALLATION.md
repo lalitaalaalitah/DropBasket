@@ -3,7 +3,7 @@
 > **Author:** [lalitaalaalitah](https://github.com/lalitaalaalitah)  
 > **Website:** [https://www.lalitaalaalitah.com](https://www.lalitaalaalitah.com)  
 > **GitHub Profile:** [https://github.com/lalitaalaalitah](https://github.com/lalitaalaalitah)  
-> **Application:** DropBasket v1.1.0
+> **Application:** DropBasket v1.4.0
 
 This guide details all methods for executing, installing, and declaratively managing **DropBasket** on macOS using **Nix**, **Nix Flakes**, **Nix-Darwin**, and **Home Manager**.
 

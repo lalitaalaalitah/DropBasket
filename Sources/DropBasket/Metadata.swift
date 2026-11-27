@@ -14,7 +14,7 @@ public struct Metadata {
     public static let website = "https://www.lalitaalaalitah.com"
     public static let github = "https://github.com/lalitaalaalitah"
     public static let appName = "DropBasket"
-    public static let appVersion = "1.3.0"
+    public static let appVersion = "1.4.0"
     public static let bundleIdentifier = "com.lalitaalaalitah.DropBasket"
     public static let description = "Floating drag-and-drop basket companion for AeroSpace on macOS"
 

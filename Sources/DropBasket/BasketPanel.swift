@@ -86,7 +86,7 @@ public class BasketPanel: NSPanel {
             alphaValue = 0.0
             orderFrontRegardless()
             NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.08
+                ctx.duration = 0.12
                 animator().alphaValue = 1.0
             }
         } else {
