@@ -20,11 +20,14 @@ public struct ServiceManager {
     public static func findAppBinaryPath() -> String? {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let possiblePaths = [
+            Bundle.main.executablePath ?? "",
+            home.appendingPathComponent(".nix-profile/bin/dropbasket").path,
+            "/run/current-system/sw/bin/dropbasket",
             home.appendingPathComponent("Applications/DropBasket.app/Contents/MacOS/DropBasket").path,
             "/Applications/DropBasket.app/Contents/MacOS/DropBasket",
             home.appendingPathComponent(".local/bin/dropbasket").path
         ]
-        return possiblePaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) })
+        return possiblePaths.first(where: { !$0.isEmpty && FileManager.default.isExecutableFile(atPath: $0) })
     }
 
     public static func generatePlistContent(binaryPath: String) -> String {
@@ -120,12 +123,23 @@ public struct ServiceManager {
     }
 
     public static func status() -> (installed: Bool, running: Bool, message: String) {
-        let isInstalled = FileManager.default.fileExists(atPath: plistURL.path)
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let homeManagerPlist = home.appendingPathComponent("Library/LaunchAgents/org.nix-community.home.dropbasket.plist")
+        let isHMInstalled = FileManager.default.fileExists(atPath: homeManagerPlist.path)
+        let isStandaloneInstalled = FileManager.default.fileExists(atPath: plistURL.path)
+        let isInstalled = isHMInstalled || isStandaloneInstalled
+
         let ipc = IPCService.shared.sendCommand("STATUS")
         let isRunning = ipc.success
 
         var desc = "DropBasket Background Service Status:\n"
-        desc += "  • LaunchAgent: \(isInstalled ? "Installed (\(plistURL.path))" : "Not installed")\n"
+        if isHMInstalled {
+            desc += "  • LaunchAgent: Installed via Home Manager (\(homeManagerPlist.path))\n"
+        } else if isStandaloneInstalled {
+            desc += "  • LaunchAgent: Installed (\(plistURL.path))\n"
+        } else {
+            desc += "  • LaunchAgent: Not installed\n"
+        }
         desc += "  • Daemon:      \(isRunning ? "🟢 RUNNING" : "⚪ STOPPED")\n"
         if isRunning {
             desc += "  • Details:     \(ipc.response.trimmingCharacters(in: .whitespacesAndNewlines))\n"

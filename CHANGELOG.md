@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Payload File Filtering**: Ensured `hasFileContent(in:)` strictly requires file URLs (`.fileURL`, `public.file-url`, `NSFilenamesPboardType`, or promised file nodes), actively rejecting text payloads (`public.utf8-plain-text`, `NSStringPboardType`).
 - **Drop Destination Hardening**: Removed `.string` and `.URL` from `registerForDraggedTypes` in `BasketPanel` and `BasketViewController`, ensuring DropBasket exclusively accepts filesystem items.
 - **Dropped Path String Fallback Removal**: Removed text fallback conversion in `extractURLs` so raw text lines cannot be converted into fake files.
+- **Home Manager Service Detection**: Enhanced `ServiceManager.status()` and `findAppBinaryPath()` to automatically detect Home Manager managed LaunchAgent (`org.nix-community.home.dropbasket.plist`) and Nix store binary paths.
 
 ## [1.0.0] - 2026-10-29
 
