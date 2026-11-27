@@ -6,7 +6,7 @@
 * **Author:** [lalitaalaalitah](https://github.com/lalitaalaalitah)
 * **Website:** [https://www.lalitaalaalitah.com](https://www.lalitaalaalitah.com)
 * **GitHub Profile:** [https://github.com/lalitaalaalitah](https://github.com/lalitaalaalitah)
-* **Version:** `1.0.0`
+* **Version:** `1.1.0`
 
 ---
 
@@ -84,6 +84,8 @@ Styled with the official **Catppuccin Mocha** colorway:
 ---
 
 ## 🛠️ Installation
+
+> 📖 **Nix & Declarative Setup:** For comprehensive declarative Nix-Darwin, Home Manager, and flake setup, see the dedicated [NIX_INSTALLATION.md](file:///Volumes/Cablet_WD_2TB_20251206/05_Development/Github/30_Applications/DropBasket/NIX_INSTALLATION.md).
 
 ### Option 1: Standard Makefile (Recommended for Native macOS)
 

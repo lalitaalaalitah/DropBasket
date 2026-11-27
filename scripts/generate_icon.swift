@@ -10,7 +10,7 @@
 
 import Cocoa
 
-let __version__ = "1.0.0"
+let __version__ = "1.1.0"
 
 if CommandLine.arguments.contains("--version") {
     print("================================================================================")

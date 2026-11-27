@@ -51,3 +51,4 @@ jobs:
 
       - name: Nix Flake Check
         run: nix flake check --show-trace
+

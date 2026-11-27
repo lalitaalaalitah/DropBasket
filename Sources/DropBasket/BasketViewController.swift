@@ -23,10 +23,10 @@ public class BasketRootDropView: FlippedView {
         super.init(frame: frameRect)
         registerForDraggedTypes([
             .fileURL,
-            .URL,
-            .string,
+            NSPasteboard.PasteboardType("public.file-url"),
             NSPasteboard.PasteboardType("NSFilenamesPboardType"),
-            NSPasteboard.PasteboardType("public.file-url")
+            NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url"),
+            NSPasteboard.PasteboardType("com.apple.finder.node")
         ])
         wantsLayer = true
         layer?.cornerRadius = 16
@@ -38,6 +38,11 @@ public class BasketRootDropView: FlippedView {
     }
 
     public override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let urls = extractURLs(from: sender.draggingPasteboard)
+        guard !urls.isEmpty else {
+            setHighlight(false, isCmd: false)
+            return []
+        }
         isCommandHeld = NSEvent.modifierFlags.contains(.command)
         let op = onDraggingEntered?(sender) ?? (isCommandHeld ? .move : [.copy, .generic])
         setHighlight(true, isCmd: isCommandHeld)
@@ -45,6 +50,11 @@ public class BasketRootDropView: FlippedView {
     }
 
     public override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let urls = extractURLs(from: sender.draggingPasteboard)
+        guard !urls.isEmpty else {
+            setHighlight(false, isCmd: false)
+            return []
+        }
         isCommandHeld = NSEvent.modifierFlags.contains(.command)
         let op = onDraggingUpdated?(sender) ?? (isCommandHeld ? .move : [.copy, .generic])
         setHighlight(true, isCmd: isCommandHeld)
@@ -111,21 +121,8 @@ public class BasketRootDropView: FlippedView {
         }
 
         // Method 5: string forType .fileURL
-        if results.isEmpty, let str = pasteboard.string(forType: .fileURL), let u = URL(string: str) {
+        if results.isEmpty, let str = pasteboard.string(forType: .fileURL), let u = URL(string: str), u.isFileURL {
             results.append(u.standardizedFileURL)
-        }
-
-        // Method 6: string fallback for local paths
-        if results.isEmpty, let rawStr = pasteboard.string(forType: .string) {
-            let lines = rawStr.components(separatedBy: .newlines)
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.hasPrefix("file://"), let u = URL(string: trimmed) {
-                    results.append(u.standardizedFileURL)
-                } else if FileManager.default.fileExists(atPath: (trimmed as NSString).expandingTildeInPath) {
-                    results.append(URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath).standardizedFileURL)
-                }
-            }
         }
 
         // Deduplicate

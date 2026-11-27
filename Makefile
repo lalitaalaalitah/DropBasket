@@ -3,7 +3,7 @@
 # Website: https://www.lalitaalaalitah.com
 # GitHub Profile: https://github.com/lalitaalaalitah
 
-VERSION = 1.0.0
+VERSION = 1.1.0
 
 .PHONY: all build app test install clean version help
 

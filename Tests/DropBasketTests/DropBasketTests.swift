@@ -33,9 +33,9 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(Metadata.author == "lalitaalaalitah")
         #expect(Metadata.website == "https://www.lalitaalaalitah.com")
         #expect(Metadata.github == "https://github.com/lalitaalaalitah")
-        #expect(Metadata.appVersion == "1.0.0")
+        #expect(Metadata.appVersion == "1.1.0")
         #expect(Metadata.bundleIdentifier == "com.lalitaalaalitah.DropBasket")
-        #expect(CLI.__version__ == "1.0.0")
+        #expect(CLI.__version__ == "1.1.0")
     }
 
     @Test func testCatppuccinMochaPalette() {
@@ -255,5 +255,38 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(plist.contains("<key>RunAtLoad</key>"))
         #expect(plist.contains("<key>KeepAlive</key>"))
         #expect(ServiceManager.plistURL.lastPathComponent == "com.lalitaalaalitah.DropBasket.plist")
+    }
+}
+
+@Suite struct DragValidationTests {
+    @Test func testTextSelectionDoesNotTriggerFileDrag() {
+        let manager = EventTapManager.shared
+        let dragPb = NSPasteboard(name: .drag)
+
+        // When mouse goes down during text selection, mouseDownDragChangeCount matches drag pasteboard
+        manager.mouseDownDragChangeCount = dragPb.changeCount
+
+        // Simulating text selection (mouse moved with button down, no NSDraggingSession started):
+        // changeCount has NOT incremented
+        #expect(manager.isSystemFileDragInProgress() == false)
+    }
+
+    @Test func testTextOnlyDragIsRejected() {
+        let manager = EventTapManager.shared
+        let customPb = NSPasteboard(name: NSPasteboard.Name("DropBasketTestTextPb"))
+        customPb.clearContents()
+        customPb.setString("Just plain text selected by user", forType: .string)
+
+        #expect(manager.hasFileContent(in: customPb) == false)
+    }
+
+    @Test func testFileDragIsRecognized() {
+        let manager = EventTapManager.shared
+        let customPb = NSPasteboard(name: NSPasteboard.Name("DropBasketTestFilePb"))
+        customPb.clearContents()
+        let fileUrl = URL(fileURLWithPath: "/tmp/sample.txt")
+        customPb.writeObjects([fileUrl as NSURL])
+
+        #expect(manager.hasFileContent(in: customPb) == true)
     }
 }

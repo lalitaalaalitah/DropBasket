@@ -46,12 +46,13 @@ public class BasketPanel: NSPanel {
         self.isOpaque = false
         self.contentViewController = basketVC
 
-        // Register window for drag & drop
+        // Register window strictly for file drag & drop (never plain text or web URLs)
         self.registerForDraggedTypes([
             .fileURL,
-            .URL,
-            .string,
-            NSPasteboard.PasteboardType("NSFilenamesPboardType")
+            NSPasteboard.PasteboardType("public.file-url"),
+            NSPasteboard.PasteboardType("NSFilenamesPboardType"),
+            NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url"),
+            NSPasteboard.PasteboardType("com.apple.finder.node")
         ])
     }
 
