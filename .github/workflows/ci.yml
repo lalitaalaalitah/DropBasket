@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     name: Test & Build (macOS)
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
 
   nix-flake:
     name: Nix Flake Check
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
