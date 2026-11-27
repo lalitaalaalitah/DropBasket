@@ -33,9 +33,9 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         #expect(Metadata.author == "lalitaalaalitah")
         #expect(Metadata.website == "https://www.lalitaalaalitah.com")
         #expect(Metadata.github == "https://github.com/lalitaalaalitah")
-        #expect(Metadata.appVersion == "1.1.0")
+        #expect(Metadata.appVersion == "1.2.0")
         #expect(Metadata.bundleIdentifier == "com.lalitaalaalitah.DropBasket")
-        #expect(CLI.__version__ == "1.1.0")
+        #expect(CLI.__version__ == "1.2.0")
     }
 
     @Test func testCatppuccinMochaPalette() {
@@ -156,6 +156,43 @@ final class MockShakeDelegate: ShakeDetectorDelegate, @unchecked Sendable {
         }
 
         #expect(!delegate.detectedShakes.isEmpty)
+    }
+
+    @Test func testShakeImmediatelyAfterLongStraightDragTriggersWithoutDelay() {
+        let detector = ShakeDetector()
+        let delegate = MockShakeDelegate()
+        detector.delegate = delegate
+
+        AppSettings.shared.sensitivity = .medium
+        detector.handleMouseDown(at: CGPoint(x: 100, y: 100))
+
+        // Long linear drag across 500 pixels (simulating dragging across workspaces/screen)
+        for x in stride(from: 100, through: 600, by: 20) {
+            detector.handleMouseDragged(at: CGPoint(x: CGFloat(x), y: 100))
+        }
+
+        // At this point, no shake should have triggered
+        #expect(delegate.detectedShakes.isEmpty)
+
+        // Immediately perform a quick 2-stroke flick: 600 -> 580 -> 600
+        var currentX: CGFloat = 600
+        // Flick left
+        for _ in 0..<6 {
+            currentX -= 3.5
+            detector.handleMouseDragged(at: CGPoint(x: currentX, y: 100))
+        }
+        // Flick right
+        for _ in 0..<6 {
+            currentX += 3.5
+            detector.handleMouseDragged(at: CGPoint(x: currentX, y: 100))
+            if !delegate.detectedShakes.isEmpty {
+                break
+            }
+        }
+
+        // Must trigger immediately without waiting for past drag history to expire
+        #expect(!delegate.detectedShakes.isEmpty)
+        #expect(delegate.detectedIsDragging.first == true)
     }
 }
 

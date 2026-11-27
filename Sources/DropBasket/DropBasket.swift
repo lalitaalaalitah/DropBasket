@@ -12,7 +12,7 @@ import Foundation
 
 @main
 struct DropBasketApp {
-    public static let __version__ = "1.1.0"
+    public static let __version__ = "1.2.0"
 
     @MainActor
     static func main() {

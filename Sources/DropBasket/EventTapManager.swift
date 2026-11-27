@@ -159,49 +159,25 @@ public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
     }
 
     public func hasFileContent(in pasteboard: NSPasteboard) -> Bool {
-        // Method 1: direct file URLs
-        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty {
-            return true
-        }
+        guard let types = pasteboard.types, !types.isEmpty else { return false }
 
-        // Method 2: check for specific file-related pasteboard types
-        guard let types = pasteboard.types else { return false }
-
-        // Promised file types (e.g. from Photos, Mail, etc.)
-        let promisedTypes: [NSPasteboard.PasteboardType] = [
-            NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url"),
+        // Fast in-memory check for file-related pasteboard types (zero IPC latency)
+        let fileTypes: Set<NSPasteboard.PasteboardType> = [
+            .fileURL,
+            NSPasteboard.PasteboardType("public.file-url"),
+            NSPasteboard.PasteboardType("NSFilenamesPboardType"),
             NSPasteboard.PasteboardType("com.apple.finder.node"),
+            NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url"),
             NSPasteboard.PasteboardType("NSFilesPromisePboardType")
         ]
-        if types.contains(where: { promisedTypes.contains($0) }) {
+
+        if types.contains(where: { fileTypes.contains($0) }) {
             return true
         }
 
-        // Legacy filename list
-        let filenameType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
-        if types.contains(filenameType) {
-            if let files = pasteboard.propertyList(forType: filenameType) as? [String], !files.isEmpty {
-                return true
-            }
-        }
-
-        // Explicit file URL type
-        let publicFileType = NSPasteboard.PasteboardType("public.file-url")
-        if types.contains(.fileURL) || types.contains(publicFileType) {
-            if let str = pasteboard.string(forType: .fileURL) ?? pasteboard.string(forType: publicFileType),
-               let u = URL(string: str), u.isFileURL {
-                return true
-            }
-        }
-
-        // Method 3: pasteboardItems inspection
-        if let items = pasteboard.pasteboardItems {
-            for item in items {
-                if let str = item.string(forType: .fileURL) ?? item.string(forType: publicFileType),
-                   let u = URL(string: str), u.isFileURL {
-                    return true
-                }
-            }
+        // Method 2: direct file URLs fallback
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty {
+            return true
         }
 
         return false
@@ -210,18 +186,22 @@ public final class EventTapManager: @unchecked Sendable, ShakeDetectorDelegate {
     // MARK: - ShakeDetectorDelegate
 
     public func didDetectShake(at point: CGPoint, isDragging: Bool) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if isDragging {
-                // Must be an active file drag session! Rejects text selections and text drags.
-                guard self.isSystemFileDragInProgress() else {
-                    return
-                }
-                self.onShakeDetected?(point, true)
-            } else {
+        if isDragging {
+            // Must be an active file drag session! Rejects text selections and text drags.
+            guard self.isSystemFileDragInProgress() else {
+                return
+            }
+            self.shakeDetector.recordTrigger()
+            DispatchQueue.main.async { [weak self] in
+                self?.onShakeDetected?(point, true)
+            }
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 if FinderHelper.shared.isFinderFrontmost {
                     let sel = FinderHelper.shared.getSelectedURLs()
                     if !sel.isEmpty {
+                        self.shakeDetector.recordTrigger()
                         self.onShakeDetected?(point, false)
                     }
                 }

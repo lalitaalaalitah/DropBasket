@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-27
+
+### Fixed
+- **Instantaneous Shake Detection**: Replaced global displacement ratio and historical sample buffer with localized stroke turnaround kinematics (`StrokeReversal`), eliminating detection delay and allowing the basket to appear on the very first natural flick.
+- **Drag-to-Shake Responsiveness**: Removed drag history contamination so shaking the cursor immediately after a long linear drag across the screen triggers in < 150ms without waiting for prior drag coordinates to expire.
+- **Zero-Latency In-Memory Drag Validation**: Validated drag session contents using fast in-memory UTI types (`.fileURL`, `public.file-url`, `NSFilenamesPboardType`, `com.apple.finder.node`), eliminating blocking pasteboard object deserialization during modal drag loops.
+- **Sensitivity & Time Window Calibration**: Tuned default sensitivity thresholds (`minStrokeDistance: 5.0px`, `minTotalPath: 18.0px`, `timeWindow: 0.65s`, `cooldown: 0.35s`) for effortless, fluid cursor wiggling on both trackpads and mice.
+- **Main-Thread Presentation Optimization**: Added result caching to `AeroSpaceHelper.getFocusedWorkspace()` and trimmed window presentation animation to 0.08s for zero-latency appearance.
+
 ## [1.1.0] - 2026-11-27
 
 ### Fixed

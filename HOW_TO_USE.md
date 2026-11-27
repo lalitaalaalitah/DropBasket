@@ -4,7 +4,7 @@
 > Author: [lalitaalaalitah](https://github.com/lalitaalaalitah)  
 > Website: [https://www.lalitaalaalitah.com](https://www.lalitaalaalitah.com)  
 > GitHub Profile: [https://github.com/lalitaalaalitah](https://github.com/lalitaalaalitah)  
-> Version: `1.1.0` • Styled with **Catppuccin Mocha**
+> Version: `1.2.0` • Styled with **Catppuccin Mocha**
 
 ---
 

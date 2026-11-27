@@ -50,8 +50,15 @@ public final class AeroSpaceHelper: @unchecked Sendable {
         return aerospaceExecutablePath != nil
     }
 
-    public func getFocusedWorkspace() -> String? {
-        guard let exe = aerospaceExecutablePath else { return nil }
+    private var cachedFocusedWorkspace: String?
+    private var lastWorkspaceCheckTime: TimeInterval = 0
+
+    public func getFocusedWorkspace(allowCached: Bool = true) -> String? {
+        let now = Date().timeIntervalSinceReferenceDate
+        if allowCached, let cached = cachedFocusedWorkspace, (now - lastWorkspaceCheckTime) < 1.0 {
+            return cached
+        }
+        guard let exe = aerospaceExecutablePath else { return cachedFocusedWorkspace }
         let task = Process()
         task.executableURL = URL(fileURLWithPath: exe)
         task.arguments = ["list-workspaces", "--focused"]
@@ -59,9 +66,15 @@ public final class AeroSpaceHelper: @unchecked Sendable {
         task.standardOutput = pipe
         try? task.run()
         task.waitUntilExit()
-        guard task.terminationStatus == 0 else { return nil }
+        guard task.terminationStatus == 0 else { return cachedFocusedWorkspace }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let result = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let res = result, !res.isEmpty {
+            cachedFocusedWorkspace = res
+            lastWorkspaceCheckTime = now
+            return res
+        }
+        return cachedFocusedWorkspace
     }
 
     public func listWorkspaces() -> [String] {
